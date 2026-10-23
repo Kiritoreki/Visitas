@@ -907,7 +907,8 @@ document.addEventListener("change",e=>{
 document.addEventListener("toggle",e=>{if(e.target.id==="cliEdit")editCli=e.target.open},true);
 window.addEventListener("online",()=>{renderSync();flush().then(refresh);if(!S.started)checkDevice()});
 window.addEventListener("offline",renderSync);
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&!DEMO&&Date.now()-(checkDevice.last||0)>60000)checkDevice()});
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&!DEMO&&Date.now()-(checkDevice.last||0)>15000)checkDevice()});
+setInterval(()=>{if(!DEMO&&sb&&S.started&&document.visibilityState==="visible")checkDevice()},60000);
 
 /* ============ acceso por dispositivo ============ */
 function gate(html){S.started=false;$("dock").hidden=true;$("app").innerHTML=`<div class="gate"><div><span class="sub">Meganet</span><h1>Registro de visitas</h1></div>${html}</div>`}

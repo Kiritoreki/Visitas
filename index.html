@@ -795,13 +795,15 @@ function initBigMap(){
   setTimeout(()=>bigMap&&bigMap.invalidateSize(),150)}
 
 /* ============ AJUSTES ============ */
-let devs=null,devErr="",devLoading=false;
+let devs=null,devErr="",devLoading=false,abiertas=null;
 function vAjustes(){
   if(!ADM())return `<div class="empty">Solo el administrador puede ver los ajustes.</div>`;
   if(!DEMO&&devs===null&&navigator.onLine)loadDevs();
   return `<div class="top"><h1>Ajustes</h1><span data-syncbox>${syncHTML()}</span></div>
   <section class="sec"><h2>Este dispositivo</h2>${DEMO?`<p class="muted" style="margin:0">Modo demostración: falta conectar Supabase en <span class="mono">config.js</span>.</p>`:`<p style="margin:0"><b>${esc(S.disp?.nombre||"")}</b> · Administrador · código <span class="mono">${esc(S.disp?.codigo||"")}</span></p>`}</section>
   ${DEMO?"":`<section class="sec"><div class="sec-h"><h2>Dispositivos con acceso</h2><button class="ghost" data-act="devsReload">Actualizar</button></div>
+   ${abiertas===null?"":`<div class="note ${abiertas?"a":"g"}">${abiertas?"<b>Solicitudes abiertas.</b> Cualquier celular con el enlace puede <i>pedir</i> acceso (no ve nada hasta que lo apruebes). Ciérralas cuando ya estén aprobados todos.":"<b>Solicitudes cerradas.</b> Nadie más puede pedir acceso. Ábrelas solo si necesitas agregar o reemplazar un celular."}</div>
+   <button class="${abiertas?"primary":"ghost"}" data-act="solicitudes" data-val="${abiertas?"0":"1"}">${abiertas?"Cerrar solicitudes":"Abrir solicitudes"}</button>`}
    <p class="muted" style="margin:0">Para dar acceso al jefe: que abra el enlace en su celular, ponga un nombre y te diga su código. Aquí lo apruebas como <b>Solo ver</b>.</p>
    ${devErr?`<div class="note r">${esc(devErr)}</div>`:""}
    ${devs===null?`<p class="muted">${navigator.onLine?"Cargando…":"Necesitas internet para ver los dispositivos."}</p>`:devs.map(d=>{const yo=d.user_id===S.disp?.user_id;return `<div class="box"><div class="row"><span class="grow"><b>${esc(d.nombre)}</b> <span class="mono muted">${esc(d.codigo)}</span>${yo?' <span class="tag">Este</span>':""}<br><span class="sub">${fFecha(d.creado)}</span></span></div>
@@ -822,7 +824,8 @@ function lugarTree(p,d){return hijos(p).map(l=>{const n=S.clientes.filter(c=>lug
    <div class="row"><button class="primary grow" data-act="lugSave" data-id="${l.id}">Guardar</button><button class="danger" data-act="lugDel" data-id="${l.id}">Eliminar</button></div></div>`:""}
   ${lugarTree(l.id,d+1)}`}).join("")}
 let lugEditId=null;
-async function loadDevs(){if(devLoading)return;devLoading=true;devErr="";try{const {data,error}=await sb.from("dispositivos").select("*").order("creado");if(error)throw error;devs=data}catch(e){devErr=msg(e);devs=devs||[]}devLoading=false;if(route().name==="ajustes"){render.keepScroll=true;render()}}
+async function loadDevs(){if(devLoading)return;devLoading=true;devErr="";try{const {data,error}=await sb.from("dispositivos").select("*").order("creado");if(error)throw error;devs=data;
+  const a=await sb.from("ajustes").select("*").eq("id",1).maybeSingle();abiertas=a.error?null:(a.data?a.data.solicitudes_abiertas!==false:true)}catch(e){devErr=msg(e);devs=devs||[]}devLoading=false;if(route().name==="ajustes"){render.keepScroll=true;render()}}
 
 /* ============ eventos ============ */
 document.addEventListener("click",async e=>{
@@ -868,6 +871,7 @@ document.addEventListener("click",async e=>{
    case "descartar":if(confirm("¿Descartar este cambio? No se subirá a la nube.")){S.outbox.shift();LS.set("vz-outbox",S.outbox);S.err="";flush();render.keepScroll=true;render()}break;
    case "devsReload":devs=null;render.keepScroll=true;render();break;
    case "devRol":{const {error}=await sb.from("dispositivos").update({rol:b.dataset.val}).eq("user_id",b.dataset.id);if(error){toast("Error: "+msg(error));break}toast("Acceso actualizado");loadDevs();break}
+   case "solicitudes":{const v=b.dataset.val==="1";const {error}=await sb.from("ajustes").update({solicitudes_abiertas:v}).eq("id",1);if(error){toast("Error: "+msg(error));break}abiertas=v;toast(v?"Solicitudes abiertas":"Solicitudes cerradas");render.keepScroll=true;render();break}
    case "devDel":if(confirm("¿Quitar este dispositivo? Tendrá que pedir acceso de nuevo.")){const {error}=await sb.from("dispositivos").delete().eq("user_id",b.dataset.id);if(error)toast("Error: "+msg(error));loadDevs()}break;
    case "lugEdit":lugEditId=lugEditId===b.dataset.id?null:b.dataset.id;render.keepScroll=true;render();break;
    case "lugSave":{const l=Lg(b.dataset.id);const n=$("le-nombre").value.trim();if(!n)break;const pal=$("le-pal").value.split(",").map(s=>s.trim()).filter(Boolean);const ops=[{k:"up",t:"lugares",row:{...l,nombre:n,palabras:pal}}];
@@ -912,9 +916,10 @@ async function pedirAcceso(){
   const nombre=($("devNombre")?.value||"").trim();if(!nombre){toast("Escribe un nombre para este dispositivo");return}
   const {data:{session}}=await sb.auth.getSession();
   const {error}=await sb.from("dispositivos").insert({user_id:session.user.id,nombre,codigo:codigo(),rol:"pendiente"});
-  if(error){toast("Error: "+msg(error));return}checkDevice()}
+  if(error){toast(/row-level|policy/i.test(msg(error))?"Las solicitudes de acceso están cerradas":"Error: "+msg(error));checkDevice();return}checkDevice()}
 function renderGate(kind,err){
-  if(kind==="nuevo")gate(`<section class="sec"><h2>Este dispositivo no tiene acceso</h2><p class="muted" style="margin:0">No se usan usuarios ni claves: cada celular se autoriza una sola vez. Ponle un nombre y pide acceso.</p>
+  if(kind==="nuevo"&&S.abiertas===false)gate(`<section class="sec"><h2>Acceso cerrado</h2><p class="muted" style="margin:0">Este registro no acepta nuevos dispositivos.</p></section>`);
+  else if(kind==="nuevo")gate(`<section class="sec"><h2>Este dispositivo no tiene acceso</h2><p class="muted" style="margin:0">No se usan usuarios ni claves: cada celular se autoriza una sola vez. Ponle un nombre y pide acceso.</p>
     <label class="f">Nombre del dispositivo<input id="devNombre" placeholder="Ej. iPhone de Kirito / Celular del jefe" autocomplete="off"></label><button class="primary" data-act="pedir">Pedir acceso</button></section>`);
   else if(kind==="pendiente")gate(`<section class="sec"><h2>Esperando aprobación</h2><p class="muted" style="margin:0">Dale este código al administrador para que apruebe <b>${esc(S.disp?.nombre||"este dispositivo")}</b>:</p><div class="code">${esc(S.disp?.codigo||"")}</div><button class="ghost" data-act="check">Ya me aprobaron, comprobar</button></section>
     ${S.hayAdmin?"":`<section class="sec" style="border-color:var(--fuchsia)"><h2>¿Primer uso?</h2><p class="muted" style="margin:0">Aún no hay administrador. Si este es <b>tu</b> celular, conviértelo en el administrador con control total.</p><button class="primary" data-act="reclamar">Este dispositivo es el administrador</button></section>`}`);
@@ -930,7 +935,7 @@ async function checkDevice(){
     const {data,error}=await sb.from("dispositivos").select("*").eq("user_id",session.user.id).maybeSingle();if(error)throw error;
     S.disp=data;LS.set("vz-disp",data);const prev=S.rol;S.rol=data?data.rol:null;LS.set("vz-rol",S.rol);
     if(S.rol==="admin"||S.rol==="lector"){if(!S.started||prev!==S.rol)start();else{flush();refresh()}}
-    else{wipeLocal();S.hayAdmin=!!(await sb.rpc("hay_admin")).data;renderGate(data?data.rol:"nuevo")}}
+    else{wipeLocal();S.hayAdmin=!!(await sb.rpc("hay_admin")).data;S.abiertas=(await sb.rpc("solicitudes_abiertas")).data!==false;renderGate(data?data.rol:"nuevo")}}
   catch(e){if(S.started)return;renderGate("error",msg(e))}}
 async function boot(){
   loadCache();

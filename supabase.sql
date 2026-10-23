@@ -38,6 +38,17 @@ begin
   return found;
 end $$;
 
+-- ---------- Ajustes: abrir o cerrar las solicitudes de acceso ----------
+create table if not exists public.ajustes (
+  id int primary key default 1 check (id = 1),
+  solicitudes_abiertas boolean not null default true
+);
+insert into public.ajustes (id) values (1) on conflict (id) do nothing;
+create or replace function public.solicitudes_abiertas() returns boolean
+language sql stable security definer set search_path = public as $$
+  select coalesce((select solicitudes_abiertas from public.ajustes where id = 1), true)
+$$;
+
 -- ---------- Lugares: Parroquia → Sector → Barrio ----------
 create table if not exists public.lugares (
   id       uuid primary key default gen_random_uuid(),
@@ -104,7 +115,13 @@ drop policy if exists disp_pedir    on public.dispositivos;
 drop policy if exists disp_admin_up on public.dispositivos;
 drop policy if exists disp_admin_de on public.dispositivos;
 create policy disp_ver      on public.dispositivos for select using (user_id = auth.uid() or public.es_admin());
-create policy disp_pedir    on public.dispositivos for insert with check (user_id = auth.uid() and rol = 'pendiente');
+create policy disp_pedir    on public.dispositivos for insert with check (user_id = auth.uid() and rol = 'pendiente' and public.solicitudes_abiertas());
+
+alter table public.ajustes enable row level security;
+drop policy if exists ajustes_leer on public.ajustes;
+drop policy if exists ajustes_editar on public.ajustes;
+create policy ajustes_leer   on public.ajustes for select using (public.puede_leer());
+create policy ajustes_editar on public.ajustes for update using (public.es_admin()) with check (public.es_admin());
 create policy disp_admin_up on public.dispositivos for update using (public.es_admin()) with check (public.es_admin());
 create policy disp_admin_de on public.dispositivos for delete using (public.es_admin());
 
@@ -122,7 +139,8 @@ end $$;
 -- ---------- Acceso a la API (funciona aunque "Automatically expose new tables" esté desactivado) ----------
 grant usage on schema public to anon, authenticated;
 grant select, insert, update, delete on public.dispositivos, public.lugares, public.clientes, public.visitas to authenticated;
-grant execute on function public.mi_rol(), public.es_admin(), public.puede_leer(), public.hay_admin(), public.reclamar_admin() to authenticated;
+grant execute on function public.mi_rol(), public.es_admin(), public.puede_leer(), public.hay_admin(), public.reclamar_admin(), public.solicitudes_abiertas() to authenticated;
+grant select, update on public.ajustes to authenticated;
 revoke all on public.dispositivos, public.lugares, public.clientes, public.visitas from anon;
 
 -- ---------- Fotos (almacenamiento privado) ----------

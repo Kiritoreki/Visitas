@@ -119,6 +119,12 @@ begin
   end loop;
 end $$;
 
+-- ---------- Acceso a la API (funciona aunque "Automatically expose new tables" esté desactivado) ----------
+grant usage on schema public to anon, authenticated;
+grant select, insert, update, delete on public.dispositivos, public.lugares, public.clientes, public.visitas to authenticated;
+grant execute on function public.mi_rol(), public.es_admin(), public.puede_leer(), public.hay_admin(), public.reclamar_admin() to authenticated;
+revoke all on public.dispositivos, public.lugares, public.clientes, public.visitas from anon;
+
 -- ---------- Fotos (almacenamiento privado) ----------
 insert into storage.buckets (id, name, public)
 values ('fotos', 'fotos', false)

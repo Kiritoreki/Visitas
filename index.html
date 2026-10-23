@@ -1,0 +1,947 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Visitas Meganet</title>
+<meta name="description" content="Registro de visitas técnicas por cliente: historial, diagnóstico, potencia, fotos y panel.">
+<meta name="theme-color" content="#0c0716">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Visitas">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="stylesheet" href="vendor/leaflet.css">
+<style>
+@font-face{font-family:"Sora";font-weight:600;font-display:swap;src:url(fonts/sora-latin-600-normal.woff2) format("woff2")}
+@font-face{font-family:"Sora";font-weight:700;font-display:swap;src:url(fonts/sora-latin-700-normal.woff2) format("woff2")}
+@font-face{font-family:"Manrope";font-weight:400;font-display:swap;src:url(fonts/manrope-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:"Manrope";font-weight:500;font-display:swap;src:url(fonts/manrope-latin-500-normal.woff2) format("woff2")}
+@font-face{font-family:"Manrope";font-weight:600;font-display:swap;src:url(fonts/manrope-latin-600-normal.woff2) format("woff2")}
+@font-face{font-family:"Manrope";font-weight:700;font-display:swap;src:url(fonts/manrope-latin-700-normal.woff2) format("woff2")}
+@font-face{font-family:"JetBrains Mono";font-weight:400;font-display:swap;src:url(fonts/jetbrains-mono-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:"JetBrains Mono";font-weight:600;font-display:swap;src:url(fonts/jetbrains-mono-latin-600-normal.woff2) format("woff2")}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%;background:#0c0716}
+body{margin:0}
+:root{color-scheme:dark;
+  --bg:#0c0716; --card:rgba(22,13,40,.62); --card-solid:#160d28; --fg:#ffffff; --muted:#a99fc4; --line:rgba(255,255,255,.09); --field:rgba(0,0,0,.32);
+  --purple:#a855f7; --purple-d:#9333ea; --fuchsia:#e879f9; --pink:#ff2e7a; --cyan:#22d3ee; --green:#2ee88a; --amber:#fbbf24; --orange:#ff8a1f;
+  --display:"Sora",system-ui,sans-serif; --sans:"Manrope",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,Menlo,monospace}
+*{box-sizing:border-box}
+body{color:var(--fg);font:16px/1.45 var(--sans);min-height:100vh;
+  background:radial-gradient(90% 40% at 0% 0%,rgba(147,51,234,.38),transparent 70%),radial-gradient(70% 35% at 100% 45%,rgba(232,121,249,.16),transparent 70%),radial-gradient(90% 35% at 0% 100%,rgba(34,211,238,.1),transparent 70%),var(--bg);background-attachment:fixed}
+svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.wrap{max-width:680px;margin:0 auto;padding-top:calc(18px + env(safe-area-inset-top,0px));padding-bottom:calc(130px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:16px}
+h1{font:700 28px/1.1 var(--display);letter-spacing:-.03em;margin:0;overflow-wrap:anywhere}
+h2{font:600 16px var(--display);letter-spacing:-.01em;margin:0}
+h3{font:600 14px var(--display);margin:0}
+a{color:var(--fuchsia)}
+button{font:inherit;cursor:pointer;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 14px;min-height:44px;-webkit-tap-highlight-color:transparent;transition:transform .1s,box-shadow .15s,background .15s}
+button:active{transform:scale(.97)}
+button:disabled{opacity:.45;cursor:default}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var(--fuchsia);outline-offset:2px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.sub{color:var(--muted);font-size:13px;font-weight:600}
+.muted{color:var(--muted);font-size:14px}
+.sec{background:var(--card);border:1px solid rgba(168,85,247,.25);border-radius:20px;padding:16px;display:grid;gap:12px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);min-width:0}
+.sec-h{display:flex;align-items:center;gap:10px;justify-content:space-between;flex-wrap:wrap}
+.step{font:700 12px var(--mono);color:var(--fuchsia);background:rgba(232,121,249,.12);border:1px solid rgba(232,121,249,.4);border-radius:99px;padding:2px 8px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid .full,.full{grid-column:1/-1}
+label.f{display:grid;gap:5px;font-size:13px;font-weight:600;color:var(--muted);min-width:0}
+label.f input,textarea,select,input.in{font:16px var(--sans);color:var(--fg);background:var(--field);border:1px solid var(--line);border-radius:12px;padding:10px 12px;width:100%;min-width:0;min-height:44px}
+select{appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;background-size:5px 5px;background-repeat:no-repeat;padding-right:30px}
+select option{background:#160d28;color:#fff}
+input::placeholder,textarea::placeholder{color:#7d73a0}
+input:disabled{opacity:.5}
+.mono{font-family:var(--mono)!important;font-size:15px!important}
+textarea{resize:vertical;min-height:96px;line-height:1.45}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.row>.grow{flex:1;min-width:0}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border-radius:99px;padding:8px 14px;font-weight:700;font-size:14px;background:rgba(255,255,255,.04);border:1.5px solid rgba(168,85,247,.35);color:#e9e2fb;min-height:40px}
+.chip[aria-pressed="true"]{background:linear-gradient(180deg,rgba(168,85,247,.55),rgba(147,51,234,.35));border-color:#c084fc;color:#fff;box-shadow:0 0 12px rgba(168,85,247,.55),inset 0 1px 0 rgba(255,255,255,.2)}
+.chip.red[aria-pressed="true"]{background:rgba(255,46,122,.22);border-color:var(--pink);box-shadow:0 0 12px rgba(255,46,122,.5)}
+.chip.ok[aria-pressed="true"]{background:rgba(46,232,138,.2);border-color:var(--green);color:#dcfff0;box-shadow:0 0 12px rgba(46,232,138,.45)}
+.chip.amber[aria-pressed="true"]{background:rgba(251,191,36,.18);border-color:var(--amber);color:#fde68a;box-shadow:0 0 12px rgba(251,191,36,.4)}
+.chip small{font-weight:600;opacity:.8;margin-left:6px;font-size:11px}
+.grp{font:700 11.5px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:4px}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{--c:var(--purple);border-radius:18px;padding:12px;display:flex;gap:10px;align-items:center;text-align:left;font-weight:700;font-size:14px;line-height:1.15;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 14%,transparent),rgba(20,12,36,.6));border:1.5px solid color-mix(in srgb,var(--c) 45%,transparent)}
+.tile[aria-pressed="true"]{background:linear-gradient(180deg,color-mix(in srgb,var(--c) 32%,transparent),rgba(20,12,36,.6));border-color:var(--c);box-shadow:0 0 16px color-mix(in srgb,var(--c) 55%,transparent)}
+.tile i{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:var(--c);color:#fff;flex:none}
+.c-foco_rojo{--c:var(--pink)}.c-instalacion{--c:var(--purple)}.c-tv{--c:var(--cyan)}.c-potencia{--c:var(--orange)}
+.c-tv i,.c-potencia i{color:#120a00}
+.primary{display:flex;gap:8px;justify-content:center;align-items:center;border-radius:18px;padding:14px;font:700 15px var(--display);color:#fff;border:0;text-decoration:none;
+  background:linear-gradient(135deg,var(--purple-d),var(--fuchsia));box-shadow:0 0 18px rgba(232,121,249,.5),inset 0 1px 0 rgba(255,255,255,.35)}
+.ghost{display:inline-flex;gap:6px;align-items:center;justify-content:center;border-radius:14px;padding:10px 14px;font-weight:700;font-size:14px;color:#f0e9ff;text-decoration:none;background:rgba(255,255,255,.04);border:1.5px solid rgba(168,85,247,.45);min-height:44px}
+.ghost svg{width:17px;height:17px}
+.danger{color:#ff8fb5;border:1.5px solid var(--pink);background:rgba(255,46,122,.1)}
+.back{display:inline-flex;align-items:center;gap:4px;padding:8px 12px 8px 8px;border-radius:99px;font-weight:700;font-size:14px;text-decoration:none;color:var(--fg);background:var(--card);border:1px solid var(--line);min-height:40px}
+.box{border:1px solid var(--line);border-radius:16px;padding:12px;display:grid;gap:8px;background:rgba(0,0,0,.22);min-width:0}
+.note{border-radius:14px;padding:12px;font-size:14px;line-height:1.45}
+.note.r{background:rgba(255,46,122,.12);border:1px solid rgba(255,46,122,.55);color:#ffd3e2}
+.note.a{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.55);color:#fde9b0}
+.note.g{background:rgba(46,232,138,.1);border:1px solid rgba(46,232,138,.5);color:#d3ffe9}
+.note.n{background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--muted)}
+.note b{color:#fff}
+.pv{font:700 12.5px var(--mono);padding:2px 8px;border-radius:99px;white-space:nowrap;display:inline-block}
+.pv.r{color:#ffc2d6;background:rgba(255,46,122,.18);border:1px solid var(--pink)}
+.pv.a{color:#fde68a;background:rgba(251,191,36,.16);border:1px solid var(--amber)}
+.pv.g{color:#bff7d8;background:rgba(46,232,138,.16);border:1px solid var(--green)}
+.tag{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;padding:3px 9px;border-radius:99px;background:rgba(255,255,255,.07);color:#e9e2fb;white-space:nowrap}
+.tag.Cliente{background:rgba(251,191,36,.16);color:#fde68a}.tag.Técnico{background:rgba(34,211,238,.16);color:#bdf4ff}
+.tag[class*="Red"]{background:rgba(168,85,247,.2);color:#e5ccff}.tag.Externo{background:rgba(255,255,255,.1);color:#ddd}
+.dot{width:10px;height:10px;border-radius:50%;flex:none;display:inline-block}
+.dot.g{background:var(--green);box-shadow:0 0 8px var(--green)}.dot.a{background:var(--amber);box-shadow:0 0 8px var(--amber)}.dot.r{background:var(--pink);box-shadow:0 0 8px var(--pink)}
+.item{--c:var(--purple);display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;text-align:left;width:100%;padding:12px;border-radius:18px;text-decoration:none;color:var(--fg);
+  background:var(--card);border:1px solid color-mix(in srgb,var(--c) 40%,transparent);min-width:0}
+.item .ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;color:var(--c);background:color-mix(in srgb,var(--c) 18%,transparent);border:1px solid color-mix(in srgb,var(--c) 45%,transparent)}
+.item b{display:block;font-weight:700;font-size:15px;overflow-wrap:anywhere}
+.item small{display:block;color:#d6cdee;font-size:12.5px;overflow-wrap:anywhere}
+.list{display:grid;gap:8px}
+.empty{background:var(--card);border:1px dashed rgba(168,85,247,.45);border-radius:18px;padding:22px 16px;color:var(--muted);text-align:center}
+.searchbox{display:flex;align-items:center;gap:10px;border-radius:14px;padding:0 14px;background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--muted)}
+.searchbox input{flex:1;min-width:0;font:inherit;padding:12px 0;border:0;background:transparent;color:var(--fg);outline:none}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.stat{border-radius:16px;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid var(--line);text-align:left;display:grid;gap:2px;min-width:0}
+.stat b{font:700 24px var(--display);letter-spacing:-.02em}
+.stat span{font-size:12px;color:var(--muted);font-weight:600;line-height:1.25}
+.stat.r b{color:var(--pink)}.stat.a b{color:var(--amber)}.stat.g b{color:var(--green)}
+.bars{display:grid;gap:10px}
+.barrow{display:grid;gap:5px;text-align:left;background:none;border:0;padding:4px 0;border-radius:10px;width:100%}
+.barrow .lab{display:flex;justify-content:space-between;gap:8px;font-size:14px}
+.barrow .lab b{font-weight:600}.barrow .lab span{font:600 13px var(--mono)}
+.track{height:10px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden}
+.track i{display:block;height:100%;border-radius:99px;background:var(--c,var(--purple));box-shadow:0 0 10px var(--c,var(--purple))}
+.rank{display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line);text-decoration:none;color:var(--fg)}
+.rank:first-child{border-top:0}
+.rank .n{font:700 14px var(--mono);color:var(--muted)}
+.rank b{font-weight:700;font-size:15px;display:block;overflow-wrap:anywhere}.rank small{color:var(--muted);font-size:12.5px}
+.rank .v{font:600 13px var(--mono);text-align:right;white-space:nowrap}
+.gtab{display:grid;grid-template-columns:auto 1fr 1fr;gap:8px 10px;align-items:center;font-size:13px}
+.gtab>b{color:var(--muted);font-weight:600}
+.gtab input{text-align:center}
+.photos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.ph{position:relative;border-radius:14px;border:1.5px dashed rgba(168,85,247,.5);background:rgba(0,0,0,.25);min-height:110px;display:grid;place-items:center;text-align:center;padding:8px;color:var(--fuchsia);font-weight:700;font-size:14px;overflow:hidden}
+.ph small{display:block;color:var(--muted);font-weight:500;font-size:12px}
+.ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.ph .x{position:absolute;top:6px;right:6px;width:34px;height:34px;min-height:34px;padding:0;border-radius:50%;background:rgba(12,7,22,.8);border:1px solid rgba(255,255,255,.3);display:grid;place-items:center}
+.ph .lbl{position:absolute;left:6px;bottom:6px;font-size:11px;font-weight:700;background:rgba(12,7,22,.8);padding:2px 8px;border-radius:99px;color:#fff}
+.ph input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.thumbs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.thumbs a{display:block;aspect-ratio:1;border-radius:10px;overflow:hidden;background:rgba(255,255,255,.06);position:relative}
+.thumbs img{width:100%;height:100%;object-fit:cover}
+.thumbs span{position:absolute;left:4px;bottom:4px;font-size:10px;font-weight:700;background:rgba(12,7,22,.8);padding:1px 6px;border-radius:99px}
+details.vis{border-radius:16px;background:rgba(0,0,0,.22);border:1px solid var(--line)}
+details.vis[open]{border-color:rgba(232,121,249,.45)}
+details.vis>summary{cursor:pointer;list-style:none;display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:12px}
+details.vis>summary::-webkit-details-marker{display:none}
+details.vis .body{padding:0 12px 12px;display:grid;gap:10px}
+.kv{display:grid;gap:2px;font-size:14px;line-height:1.4}
+.kv>span:first-child{font:700 11px var(--sans);letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.chart{display:flex;align-items:flex-end;gap:6px;height:130px;padding:0 2px;border-bottom:1px solid var(--line)}
+.chart div{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;justify-content:flex-end;height:100%;min-width:0}
+.chart i{display:block;width:100%;max-width:34px;border-radius:6px 6px 0 0}
+.chart span{font:600 10.5px var(--mono)}
+.chart-x{display:flex;gap:6px;padding:0 2px}.chart-x span{flex:1;text-align:center;font-size:10.5px;color:var(--muted);min-width:0;overflow:hidden;white-space:nowrap}
+.sema{display:flex;align-items:center;gap:12px;border-radius:18px;padding:14px}
+.sema.r{background:rgba(255,46,122,.16);border:1.5px solid var(--pink)}.sema.a{background:rgba(251,191,36,.12);border:1.5px solid var(--amber)}.sema.g{background:rgba(46,232,138,.1);border:1.5px solid rgba(46,232,138,.6)}
+.sema .lights{display:grid;gap:4px}.sema .lights i{width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,.12)}
+.sema.r .lights i:nth-child(1){background:var(--pink);box-shadow:0 0 10px var(--pink)}
+.sema.a .lights i:nth-child(2){background:var(--amber);box-shadow:0 0 10px var(--amber)}
+.sema.g .lights i:nth-child(3){background:var(--green);box-shadow:0 0 10px var(--green)}
+.acts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.acts>*{display:grid;justify-items:center;gap:4px;padding:10px 4px;font-size:13px;font-weight:700;text-align:center}
+.map{height:340px;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:#1a1430}
+.map.big{height:calc(100vh - 290px);min-height:360px}
+.leaflet-container{font:14px var(--sans)}
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#160d28;color:#fff}
+.leaflet-popup-content b{display:block;font-size:15px}
+.leaflet-popup-content a{color:var(--fuchsia);font-weight:700}
+.dock{position:fixed;left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:1000;
+  max-width:656px;margin:0 auto;border-radius:24px;padding:8px;display:flex;gap:6px;align-items:center;
+  background:rgba(20,12,36,.78);border:1px solid rgba(255,255,255,.11);backdrop-filter:blur(18px) saturate(150%);-webkit-backdrop-filter:blur(18px) saturate(150%);box-shadow:0 10px 30px rgba(0,0,0,.55)}
+.dock a{flex:1;display:grid;justify-items:center;gap:2px;font-size:11.5px;font-weight:700;color:var(--muted);padding:7px 0;border-radius:16px;text-decoration:none;min-height:44px}
+.dock a[aria-current="page"]{color:#fff;background:rgba(168,85,247,.22);box-shadow:inset 0 0 0 1px rgba(192,132,252,.5),0 0 14px rgba(168,85,247,.35)}
+.dock .primary{flex:1.6;padding:12px}
+.sync{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:5px 10px;border-radius:99px;background:rgba(255,255,255,.06);border:0;min-height:30px}
+.sync::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--d,var(--green));box-shadow:0 0 8px var(--d,var(--green))}
+.sync.wait{--d:var(--amber);color:#fde7a8}.sync.err{--d:var(--pink);color:#ffc2d6}.sync.off{--d:#8a80a8;color:var(--muted)}
+.banner{border-radius:14px;padding:10px 12px;font-size:13px;background:rgba(34,211,238,.1);border:1px solid rgba(34,211,238,.45);color:#c8f6ff}
+#toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:2000;background:#2a1a47;border:1px solid rgba(232,121,249,.6);color:#fff;font-weight:700;font-size:14px;padding:10px 16px;border-radius:99px;box-shadow:0 0 20px rgba(232,121,249,.4);max-width:90vw;text-align:center}
+.lugrow{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.lugrow:first-child{border-top:0}
+.lugrow b{font-weight:700}.lugrow small{display:block;color:var(--muted);font-size:12px}
+.gate{min-height:70vh;display:grid;align-content:center;gap:16px}
+.code{font:700 34px var(--mono);letter-spacing:.2em;text-align:center;color:var(--fuchsia);text-shadow:0 0 14px rgba(232,121,249,.6)}
+@media (max-width:380px){.tiles{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
+</head>
+<body>
+<main class="wrap" id="app"><p class="muted">Cargando…</p></main>
+<nav class="dock" id="dock" hidden></nav>
+<div id="toast" hidden role="status"></div>
+<script src="config.js"></script>
+<script src="vendor/supabase.js"></script>
+<script src="vendor/leaflet.js"></script>
+<script>
+"use strict";
+/* ============ básicos ============ */
+const CFG=window.VISITAS_CONFIG||{};
+const DEMO=!(CFG.url&&CFG.anonKey);
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const norm=s=>String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/\s+/g," ").trim();
+const digits=s=>String(s||"").replace(/\D/g,"");
+const DAY=864e5;
+const uid=()=>crypto.randomUUID?crypto.randomUUID():"xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==="x"?r:(r&3|8)).toString(16)});
+const LS={get(k){try{const v=localStorage.getItem(k);return v==null?null:JSON.parse(v)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+const ts=v=>typeof v==="number"?v:Date.parse(v)||0;
+const MESES=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+const fFecha=v=>{const d=new Date(ts(v));return d.getDate()+" "+MESES[d.getMonth()]+" "+d.getFullYear()};
+const fCorta=v=>{const d=new Date(ts(v));return d.getDate()+" "+MESES[d.getMonth()]};
+const fHora=v=>new Date(ts(v)).toLocaleTimeString("es-EC",{hour:"2-digit",minute:"2-digit"});
+const num=v=>{if(v===""||v==null)return null;const n=parseFloat(String(v).replace(",","."));return isNaN(n)?null:(n>0?-n:n)};
+const potCls=v=>{const n=num(v);return n===null?"":n>-25?"g":n>=-27?"a":"r"};
+const pv=v=>num(v)===null?'<span class="muted">—</span>':`<span class="pv ${potCls(v)}">${num(v).toFixed(2)}</span>`;
+const pct=(a,b)=>b?Math.round(a*100/b):0;
+function toast(t){const el=$("toast");el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,2600)}
+function msg(e){return String(e&&(e.message||e.error_description||e.msg)||e||"Error")}
+
+const ICON={
+ foco_rojo:'<svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>',
+ instalacion:'<svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>',
+ tv:'<svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="m17 2-5 5-5-5"/></svg>',
+ potencia:'<svg viewBox="0 0 24 24"><path d="M2 20h.01M7 20v-4M12 20v-8M17 20V8M22 4v16"/></svg>',
+ home:'<svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/></svg>',
+ chart:'<svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15v2M11 11v6M15 7v10M19 12v5"/></svg>',
+ map:'<svg viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>',
+ gear:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
+ plus:'<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+ back:'<svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>',
+ search:'<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>',
+ phone:'<svg viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>',
+ nav:'<svg viewBox="0 0 24 24"><path d="m3 11 19-9-9 19-2-8-8-2z"/></svg>',
+ gps:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>',
+ copy:'<svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+ x:'<svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+ edit:'<svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 1 1 3 3L7 19l-4 1 1-4z"/></svg>',
+ dl:'<svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>'};
+
+/* ============ catálogos ============ */
+const TIPOS={foco_rojo:"Foco rojo",instalacion:"Instalación",tv:"App de TV",potencia:"Mejorar potencia"};
+const SINTOMAS=["Sin internet","Lento","Se corta a ratos","Wifi no llega a los cuartos","TV no funciona","Luz roja en la ONU","Dice que nadie tocó nada"];
+const HALLAZGOS=[
+ {g:"Fibra",i:[["Potencia baja en NAP","Red / NAP"],["Fibra doblada o rota","Cliente"],["Conector sucio","Técnico"],["Conector mal hecho","Técnico"],["Roseta dañada","Cliente"],["Acometida exterior caída","Externo"]]},
+ {g:"Equipos",i:[["ONU desconectada","Cliente"],["ONU movida de lugar","Cliente"],["Router reseteado por el cliente","Cliente"],["Equipo dañado","Externo"],["Cable de red o adaptador dañado","Cliente"]]},
+ {g:"Configuración",i:[["Canal wifi saturado","Técnico"],["Mala configuración inicial","Técnico"],["Clave cambiada por el cliente","Cliente"],["Demasiados dispositivos","Cliente"]]},
+ {g:"Red",i:[["NAP o puerto sin señal","Red / NAP"],["Corte troncal","Red / NAP"]]},
+ {g:"Externo",i:[["Corte de luz","Externo"],["Rayo o tormenta","Externo"]]},
+ {g:"Sin falla",i:[["Todo funcionaba al llegar",""]]}];
+const CAUSA_DE={};HALLAZGOS.forEach(g=>g.i.forEach(([h,c])=>CAUSA_DE[h]=c));
+const SOLUCIONES=["Limpieza de conector","Cambio de conector","Cambio de patch cord","Refusión","Cambio de roseta","Reubicación de ONU","Reconfiguración de router","Cambio de canal wifi","Cambio de equipo","Solo reinicio","Explicación al cliente"];
+const CAUSAS=["Cliente","Técnico","Red / NAP","Externo"];
+const CAUSA_COL={"Cliente":"var(--amber)","Técnico":"var(--cyan)","Red / NAP":"var(--purple)","Externo":"#b9b2cc"};
+const ETIQUETA=["Correcta","Borrosa o falta","No coincide","Colocada nueva"];
+const ESTADOS=[["resuelto","Resuelto","ok"],["persiste","Persiste","red"],["pendiente","Pendiente","amber"]];
+const FOTO_TIPOS=[["meter","Power meter","Antes y después"],["olt","Pantalla OLT","Captura de SmartOLT"],["onu","ONU y cableado","Cómo lo encontraste"],["etiqueta","Etiqueta","Roseta"]];
+const COLS={
+ lugares:["id","nombre","padre","palabras","creado"],
+ clientes:["id","nombre","telefono","telefono2","ip","direccion","lugar_id","lat","lng","precision_m","nap","hilo","notas","creado","editado"],
+ visitas:["id","cliente_id","fecha","tipo","companero","previa_otra","sintomas","hallazgos","soluciones","causa","sin_senal","onu_antes","olt_antes","onu_despues","olt_despues","nap","hilo","etiqueta_estado","estado","nota","fotos","creado"]};
+const pick=(t,r)=>{const o={};for(const c of COLS[t])if(r[c]!==undefined)o[c]=r[c];return o};
+
+/* ============ almacenamiento local de fotos (IndexedDB) ============ */
+const idb=(()=>{let p;const db=()=>p||(p=new Promise((res,rej)=>{const r=indexedDB.open("visitas",1);r.onupgradeneeded=()=>r.result.createObjectStore("blobs");r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}));
+ const tx=async(mode,fn)=>{const d=await db();return new Promise((res,rej)=>{const t=d.transaction("blobs",mode);const q=fn(t.objectStore("blobs"));t.oncomplete=()=>res(q.result);t.onerror=()=>rej(t.error)})};
+ return{get:k=>tx("readonly",s=>s.get(k)).catch(()=>null),set:(k,v)=>tx("readwrite",s=>s.put(v,k)),del:k=>tx("readwrite",s=>s.delete(k)).catch(()=>{})}})();
+
+/* ============ estado y sincronización ============ */
+const S={lugares:[],clientes:[],visitas:[],outbox:[],rol:DEMO?"admin":null,disp:null,syncing:false,lastSync:0,err:"",hayAdmin:true,started:false};
+let sb=null;
+const ADM=()=>S.rol==="admin";
+function loadCache(){const c=LS.get("vz-cache")||{};S.lugares=c.lugares||[];S.clientes=c.clientes||[];S.visitas=c.visitas||[];S.lastSync=c.lastSync||0;S.outbox=LS.get("vz-outbox")||[]}
+function saveCache(){LS.set("vz-cache",{lugares:S.lugares,clientes:S.clientes,visitas:S.visitas,lastSync:S.lastSync})}
+function wipeLocal(){S.lugares=[];S.clientes=[];S.visitas=[];LS.del("vz-cache")}
+function applyLocal(op){
+  if(op.k==="up"){const a=S[op.t];const i=a.findIndex(r=>r.id===op.row.id);if(i>=0)a[i]={...a[i],...op.row};else a.push({...op.row})}
+  else if(op.k==="del"){
+    if(op.t==="clientes")S.visitas=S.visitas.filter(v=>v.cliente_id!==op.id);
+    if(op.t==="lugares"){const gone=new Set([op.id]);let ch=true;while(ch){ch=false;for(const l of S.lugares)if(l.padre&&gone.has(l.padre)&&!gone.has(l.id)){gone.add(l.id);ch=true}}
+      S.lugares=S.lugares.filter(l=>!gone.has(l.id));S.clientes.forEach(c=>{if(gone.has(c.lugar_id))c.lugar_id=null});return}
+    S[op.t]=S[op.t].filter(r=>r.id!==op.id)}}
+function commit(ops){
+  ops.forEach(o=>{if(o.k==="up"||o.k==="del")applyLocal(o)});
+  if(DEMO){ops.forEach(o=>{if(o.k==="fotodel")idb.del(o.path)})}
+  else{S.outbox.push(...ops);LS.set("vz-outbox",S.outbox)}
+  saveCache();flush();renderSync()}
+async function runOp(op){
+  if(op.k==="up"){const {error}=await sb.from(op.t).upsert(pick(op.t,op.row));if(error)throw error}
+  else if(op.k==="del"){const {error}=await sb.from(op.t).delete().eq("id",op.id);if(error)throw error}
+  else if(op.k==="foto"){const b=await idb.get(op.path);if(!b)return;const {error}=await sb.storage.from("fotos").upload(op.path,b,{contentType:"image/jpeg",upsert:true});if(error)throw error;await idb.del(op.path)}
+  else if(op.k==="fotodel"){await idb.del(op.path);await sb.storage.from("fotos").remove([op.path])}}
+async function flush(){
+  if(DEMO||!sb||S.syncing||!navigator.onLine||!ADM()||!S.outbox.length)return;
+  S.syncing=true;renderSync();
+  try{while(S.outbox.length){await runOp(S.outbox[0]);S.outbox.shift();LS.set("vz-outbox",S.outbox)}S.err=""}
+  catch(e){S.err=msg(e)}
+  finally{S.syncing=false;renderSync()}}
+async function fetchAll(t){let all=[];for(let from=0;;from+=1000){const {data,error}=await sb.from(t).select("*").range(from,from+999);if(error)throw error;all=all.concat(data);if(data.length<1000)break}return all}
+async function refresh(){
+  if(DEMO||!sb||!navigator.onLine||!(S.rol==="admin"||S.rol==="lector"))return;
+  try{const [l,c,v]=await Promise.all(["lugares","clientes","visitas"].map(fetchAll));
+    S.lugares=l;S.clientes=c;S.visitas=v;S.outbox.forEach(o=>{if(o.k==="up"||o.k==="del")applyLocal(o)});
+    S.lastSync=Date.now();saveCache();if(!S.err)S.err="";softRender()}
+  catch(e){S.err=msg(e);renderSync()}}
+function syncHTML(){
+  if(DEMO)return `<span class="sync off">Modo demostración</span>`;
+  if(!navigator.onLine)return `<button class="sync off" data-act="sync">Sin internet${S.outbox.length?" · "+S.outbox.length+" por subir":""}</button>`;
+  if(S.syncing)return `<span class="sync wait">Subiendo…</span>`;
+  if(S.err)return `<button class="sync err" data-act="sync">Error al sincronizar · reintentar</button>`;
+  if(S.outbox.length)return `<button class="sync wait" data-act="sync">${S.outbox.length} por subir</button>`;
+  return `<button class="sync" data-act="sync">Sincronizado</button>`}
+function renderSync(){document.querySelectorAll("[data-syncbox]").forEach(el=>el.innerHTML=syncHTML())}
+
+/* ============ ayudas de datos ============ */
+const Lg=id=>S.lugares.find(l=>l.id===id);
+const Cl=id=>S.clientes.find(c=>c.id===id);
+function lugarChain(id){const out=[];let l=Lg(id),g=0;while(l&&g++<10){out.unshift(l);l=l.padre?Lg(l.padre):null}return out}
+const lugarTxt=id=>lugarChain(id).map(l=>l.nombre).join(" › ");
+const lugarRaiz=id=>lugarChain(id)[0]||null;
+const hijos=p=>S.lugares.filter(l=>(l.padre||null)===(p||null)).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
+const visCli=id=>S.visitas.filter(v=>v.cliente_id===id).sort((a,b)=>ts(b.fecha)-ts(a.fecha));
+function semaforo(id){const n=S.visitas.filter(v=>v.cliente_id===id&&v.tipo!=="instalacion"&&Date.now()-ts(v.fecha)<=30*DAY).length;return{n,c:n>=3?"r":n===2?"a":"g"}}
+const SEM_TXT={r:"Cliente en rojo",a:"Cliente en ámbar",g:"Cliente en verde"};
+function baseline(cid,exceptId){return visCli(cid).find(v=>v.tipo==="instalacion"&&v.id!==exceptId&&num(v.onu_despues)!==null)||null}
+function dist(a1,o1,a2,o2){const R=6371e3,r=Math.PI/180;const dA=(a2-a1)*r,dO=(o2-o1)*r;const x=Math.sin(dA/2)**2+Math.cos(a1*r)*Math.cos(a2*r)*Math.sin(dO/2)**2;return 2*R*Math.asin(Math.sqrt(x))}
+const mapsDir=(c)=>c.lat!=null?`https://www.google.com/maps/dir/?api=1&destination=${(+c.lat).toFixed(6)},${(+c.lng).toFixed(6)}`:null;
+function lugarDepth(id){return Math.max(0,lugarChain(id).length-1)}
+function detectarLugar(txt){
+  const clean=s=>norm(s).replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim();
+  const t=" "+clean(txt)+" ";let best=null;
+  for(const l of S.lugares)for(const w of [l.nombre,...(l.palabras||[])]){const n=clean(w);if(n.length<3)continue;
+    if(t.includes(" "+n+" ")){const sc=lugarDepth(l.id)*1000+n.length;if(!best||sc>best.sc)best={id:l.id,sc,w}}}
+  return best}
+
+/* ============ lectura de la planificación (igual que la app de actividades) ============ */
+function parse(txt){
+  const out={tecnico:"",soporte:"",cliente:"",direccion:"",tel:"",ip:"",cedula:"",correo:"",plan:"",nap:"",hilo:"",potAntes:"",coords:"",mapa:"",extra:[]};
+  const MAPRE=/(https?:\/\/)?(maps\.app\.goo\.gl|goo\.gl\/maps|(www\.)?google\.[a-z.]+\/maps|maps\.google\.[a-z.]+|g\.co\/kgs)\S*/gi;
+  for(const raw of String(txt||"").split(/\r?\n/)){let l=raw.trim();if(!l)continue;
+    const mm=l.match(MAPRE);if(mm){if(!out.mapa)out.mapa=mm[0].startsWith("http")?mm[0]:"https://"+mm[0];l=l.replace(MAPRE,"").trim();
+      if(!l||/^(ubicaci[oó]n|ubicaci[oó]n del cliente|maps?|google maps|link|enlace|direcci[oó]n en maps)\s*[,.:]*$/i.test(l))continue;l=l.replace(/[\s,.:\-]+$/,"");if(!l)continue}
+    {const nm=l.match(/^nap\s*[,.:]?\s*([A-Za-z0-9]+(?:-[A-Za-z0-9]+)*)\s*(?:[,;/]?\s*(?:h(?:ilo)?)\s*[:.#]?\s*(\d+))?\s*$/i);
+      if(nm){out.nap=nm[1].toUpperCase();if(nm[2])out.hilo=nm[2];continue}
+      const cm=l.match(/^coordenadas?\s*[,.:]?\s*(.+)$/i);if(cm){out.coords=cm[1].trim();continue}
+      const im=l.match(/^ip\s*[,.:]?\s*(\d{1,3}(?:\.\d{1,3}){3})\s*$/i);if(im){out.ip=im[1];continue}
+      const tm=l.match(/^(?:tel[eé]fonos?|telf?|cel(?:ular)?)\.?\s*[,.:]?\s*(\+?\d[\d\s\/,y-]{5,})$/i);if(tm){out.tel=tm[1].trim();continue}
+      const hm=l.match(/^hilo\s*[,.:#]?\s*(\d+)\s*$/i);if(hm){out.hilo=hm[1];continue}
+      const pm=l.match(/^potencia(?:\s+actual)?\s*[,.:]?\s*(-?\s*\d+(?:[.,]\d+)?)\s*(?:dbm)?\s*$/i);
+      if(pm){out.potAntes=pm[1].replace(/\s/g,"").replace(",",".");continue}}
+    const m=l.match(/^(t[eé]cnicos?|soporte|cliente|direcci[oó]n|tel[eé]fono|tel[eé]f|tel|celular|cel|ip|c[eé]dula|correo(?: electr[oó]nico)?|plan|nap)\s*[,.:]+\s*(.*)$/i);
+    if(!m){if(!/^instalaci[oó]n\.?$/i.test(l))out.extra.push(l);continue}
+    const k=m[1].toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+    const key=k.startsWith("tecnico")?"tecnico":k.startsWith("direc")?"direccion":/^(tel|cel)/.test(k)?"tel":k.startsWith("correo")?"correo":k;
+    out[key]=m[2].trim()}
+  out.extra=out.extra.join("\n");return out}
+const DMS=/(\d{1,3})\s*°\s*(\d{1,2})\s*['’′]\s*(\d{1,2}(?:[.,]\d+)?)\s*(?:"|”|″|'')?\s*([NS])[\s,;]+(\d{1,3})\s*°\s*(\d{1,2})\s*['’′]\s*(\d{1,2}(?:[.,]\d+)?)\s*(?:"|”|″|'')?\s*([EWO])/i;
+function coordsDec(t){t=String(t||"");const m=t.match(DMS);
+  if(m){const f=(d,mi,se)=>+d+ +mi/60+ +String(se).replace(",",".")/3600;let la=f(m[1],m[2],m[3]),lo=f(m[5],m[6],m[7]);if(/s/i.test(m[4]))la=-la;if(/[wo]/i.test(m[8]))lo=-lo;return [la,lo]}
+  const at=t.match(/@(-?\d{1,2}\.\d+),(-?\d{1,3}\.\d+)/);if(at)return [+at[1],+at[2]];
+  const q=t.match(/[?&](?:q|query|destination|ll)=(-?\d{1,2}\.\d+)(?:,|%2C)\s*(-?\d{1,3}\.\d+)/i);if(q)return [+q[1],+q[2]];
+  const d=t.match(/(-?\d{1,2}\.\d{3,})\s*[,;\s]\s*(-?\d{1,3}\.\d{3,})/);return d?[+d[1],+d[2]]:null}
+const telsFrom=s=>(String(s||"").match(/\+?\d[\d\s-]{5,13}\d/g)||[]).map(x=>x.replace(/[\s-]/g,"")).filter((x,i,a)=>a.indexOf(x)===i);
+
+/* ============ fotos ============ */
+async function comprimir(file){
+  const url=URL.createObjectURL(file);
+  try{const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=url});
+    const M=1600,s=Math.min(1,M/Math.max(img.naturalWidth,img.naturalHeight));
+    const c=document.createElement("canvas");c.width=Math.round(img.naturalWidth*s);c.height=Math.round(img.naturalHeight*s);
+    c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+    return await new Promise(res=>c.toBlob(b=>res(b),"image/jpeg",.72))}
+  finally{URL.revokeObjectURL(url)}}
+const fotoURL=new Map();
+async function hydratePhotos(root=document){
+  const els=[...root.querySelectorAll("[data-foto]")];if(!els.length)return;
+  const need=[];
+  for(const el of els){const p=el.dataset.foto;if(fotoURL.has(p)){setFoto(el,fotoURL.get(p));continue}
+    const b=await idb.get(p);if(b){const u=URL.createObjectURL(b);fotoURL.set(p,u);setFoto(el,u)}else need.push(p)}
+  if(need.length&&sb&&navigator.onLine){const uniq=[...new Set(need)];
+    const {data}=await sb.storage.from("fotos").createSignedUrls(uniq,3600).catch(()=>({data:null}))||{};
+    (data||[]).forEach(d=>{if(d.signedUrl){fotoURL.set(d.path,d.signedUrl)}});
+    els.forEach(el=>{const u=fotoURL.get(el.dataset.foto);if(u)setFoto(el,u)})}}
+function setFoto(el,u){if(el.tagName==="IMG")el.src=u;else if(el.tagName==="A")el.href=u}
+
+/* ============ ruta y dibujo ============ */
+function route(){const p=(location.hash.slice(1)||"/").split("/").filter(Boolean);return{name:p[0]||"inicio",id:p[1]||null,extra:p[2]||null}}
+let miniMap=null,bigMap=null;
+function killMaps(){if(miniMap){miniMap.remove();miniMap=null}if(bigMap){bigMap.remove();bigMap=null}}
+function render(){
+  if(!S.started)return;
+  const r=route();killMaps();
+  if(!ADM()&&(r.name==="nueva"||r.name==="visita")){location.hash="#/";return}
+  const views={inicio:vInicio,cliente:vCliente,nueva:vEditor,visita:vEditor,panel:vPanel,mapa:vMapa,ajustes:vAjustes};
+  const v=views[r.name]||vInicio;
+  $("app").innerHTML=v(r);
+  renderDock(r);hydratePhotos();
+  if(r.name==="mapa")initBigMap();
+  if(r.name==="nueva"||r.name==="visita")initMiniMap();
+  if(!render.keepScroll)window.scrollTo(0,0);render.keepScroll=false}
+function softRender(){const r=route();if(r.name==="nueva"||r.name==="visita"){renderSync();return}render.keepScroll=true;render()}
+function renderDock(r){
+  const d=$("dock");d.hidden=false;
+  const a=(h,n,ic,l)=>`<a href="#/${h}" ${r.name===n?'aria-current="page"':""}>${ICON[ic]}${l}</a>`;
+  if(r.name==="nueva"||r.name==="visita"){d.innerHTML=`<a href="${cur&&cur.clienteId&&Cl(cur.clienteId)?"#/cliente/"+cur.clienteId:"#/"}">${ICON.back}Cancelar</a><button class="primary" data-act="guardar">Guardar visita</button>`;return}
+  d.innerHTML=a("","inicio","home","Inicio")+a("panel","panel","chart","Panel")+a("mapa","mapa","map","Mapa")+(ADM()?a("ajustes","ajustes","gear","Ajustes"):"")}
+window.addEventListener("hashchange",()=>{if(route().name!=="nueva"&&route().name!=="visita")cur=null;render()});
+
+/* ============ INICIO ============ */
+let q="";
+function visitaItem(v,showCli=true){const c=Cl(v.cliente_id)||{};const t=TIPOS[v.tipo]?v.tipo:"foco_rojo";
+  return `<a class="item c-${t}" href="#/cliente/${v.cliente_id}"><span class="ic">${ICON[t]}</span>
+  <span style="min-width:0"><b>${esc(showCli?(c.nombre||"Cliente"):TIPOS[t])}</b><small>${fFecha(v.fecha)} · ${esc(showCli?TIPOS[t]:fHora(v.fecha))}${v.causa?" · "+esc(v.causa):""}</small></span>
+  <span>${v.estado==="persiste"?'<span class="tag" style="color:#ffc2d6">Persiste</span>':v.estado==="pendiente"?'<span class="tag" style="color:#fde68a">Pendiente</span>':""}</span></a>`}
+function clienteItem(c){const s=semaforo(c.id);const n=visCli(c.id).length;
+  return `<a class="item" href="#/cliente/${c.id}"><span class="dot ${s.c}" aria-label="${SEM_TXT[s.c]}"></span>
+  <span style="min-width:0"><b>${esc(c.nombre)}</b><small>${esc(lugarTxt(c.lugar_id)||c.direccion||"Sin lugar")}${c.telefono?" · "+esc(c.telefono):""}</small></span>
+  <span class="tag">${n} ${n===1?"visita":"visitas"}</span></a>`}
+function vInicio(){
+  const res=q.trim()?buscar(q):null;
+  const rojos=S.clientes.map(c=>({c,s:semaforo(c.id)})).filter(x=>x.s.c!=="g").sort((a,b)=>b.s.n-a.s.n);
+  const ult=[...S.visitas].sort((a,b)=>ts(b.fecha)-ts(a.fecha)).slice(0,8);
+  const mes=S.visitas.filter(v=>Date.now()-ts(v.fecha)<=30*DAY).length;
+  return `<div class="top"><div><span class="sub">Meganet · ${ADM()?"Administrador":"Solo lectura"}</span><h1>Visitas</h1></div><span data-syncbox>${syncHTML()}</span></div>
+  ${DEMO?`<div class="banner"><b>Modo demostración.</b> Los datos se guardan solo en este celular. Cuando conectes Supabase se activa la nube y el acceso del jefe.</div>`:""}
+  ${ADM()?`<a class="primary" href="#/nueva">${ICON.plus}Nueva visita</a>`:""}
+  <div class="searchbox">${ICON.search}<input id="q" type="search" placeholder="Buscar cliente, teléfono, IP, NAP…" value="${esc(q)}" aria-label="Buscar cliente"></div>
+  <div id="qres">${res?resHTML(res):""}</div>
+  <div class="stats"><div class="stat"><b>${S.clientes.length}</b><span>Clientes</span></div><div class="stat"><b>${mes}</b><span>Visitas en 30 días</span></div><div class="stat ${rojos.some(x=>x.s.c==="r")?"r":"g"}"><b>${rojos.filter(x=>x.s.c==="r").length}</b><span>Clientes en rojo</span></div></div>
+  <section class="sec"><div class="sec-h"><h2>Clientes reincidentes</h2><span class="sub">2 o más visitas en 30 días</span></div>
+    ${rojos.length?`<div class="list">${rojos.slice(0,8).map(x=>clienteItem(x.c)).join("")}</div>`:`<p class="muted" style="margin:0">Ningún cliente reincidente. 👌</p>`}</section>
+  <section class="sec"><h2>Últimas visitas</h2>${ult.length?`<div class="list">${ult.map(v=>visitaItem(v)).join("")}</div>`:`<div class="empty">Aún no hay visitas.${ADM()?" Toca <b>Nueva visita</b> para registrar la primera.":""}</div>`}</section>`}
+function buscar(t){const n=norm(t),d=digits(t);return S.clientes.filter(c=>{const h=norm([c.nombre,c.direccion,c.ip,c.nap,lugarTxt(c.lugar_id)].join(" "));return h.includes(n)||(d.length>=4&&digits((c.telefono||"")+" "+(c.telefono2||"")).includes(d))||(c.ip&&c.ip.includes(t.trim()))}).slice(0,15)}
+function resHTML(res){return res.length?`<div class="list">${res.map(clienteItem).join("")}</div>`:`<p class="muted">Sin resultados.</p>`}
+
+/* ============ FICHA DEL CLIENTE ============ */
+let editCli=false;
+function vCliente(r){
+  const c=Cl(r.id);if(!c)return `<a class="back" href="#/">${ICON.back}Inicio</a><div class="empty">Cliente no encontrado.</div>`;
+  const vs=visCli(c.id),s=semaforo(c.id),dir=mapsDir(c);
+  const base=baseline(c.id);
+  const causas={};vs.forEach(v=>{if(v.causa)causas[v.causa]=(causas[v.causa]||0)+1});const tc=Object.values(causas).reduce((a,b)=>a+b,0);
+  const hechas=[...new Set(vs.filter(v=>v.tipo!=="instalacion").slice(0,3).flatMap(v=>v.soluciones||[]))];
+  const serie=[...vs].reverse().map(v=>({f:v.fecha,v:num(v.onu_despues)??num(v.onu_antes)})).filter(x=>x.v!==null).slice(-8);
+  const telLink=c.telefono?`tel:${digits(c.telefono)}`:null;
+  return `<div class="top"><a class="back" href="#/">${ICON.back}Inicio</a><span data-syncbox>${syncHTML()}</span></div>
+  <div><span class="sub">${esc(lugarTxt(c.lugar_id)||"Sin lugar asignado")}</span><h1>${esc(c.nombre)}</h1>
+   <div class="muted mono" style="font-size:13px!important;margin-top:4px">${[c.telefono,c.ip&&"IP "+c.ip,c.nap&&("NAP "+c.nap+(c.hilo?" H-"+c.hilo:""))].filter(Boolean).map(esc).join(" · ")||"Sin datos de contacto"}</div>
+   ${c.direccion?`<div class="muted" style="margin-top:4px">${esc(c.direccion)}</div>`:""}</div>
+  <div class="sema ${s.c}"><span class="lights" aria-hidden="true"><i></i><i></i><i></i></span><div><b style="font-size:17px">${SEM_TXT[s.c]}</b><div class="muted" style="color:inherit">${s.n} ${s.n===1?"visita":"visitas"} de soporte en los últimos 30 días</div></div></div>
+  <div class="acts">
+    ${telLink?`<a class="ghost" href="${telLink}">${ICON.phone}Llamar</a>`:`<span class="ghost" style="opacity:.4">${ICON.phone}Sin teléfono</span>`}
+    ${dir?`<a class="ghost" href="${dir}" target="_blank" rel="noopener">${ICON.nav}Cómo llegar</a>`:`<span class="ghost" style="opacity:.4">${ICON.nav}Sin ubicación</span>`}
+    ${ADM()?`<a class="ghost" href="#/nueva/${c.id}" style="border-color:var(--fuchsia)">${ICON.plus}Nueva visita</a>`:`<a class="ghost" href="#/mapa">${ICON.map}Mapa</a>`}
+  </div>
+  ${hechas.length?`<div class="note a"><b>Antes de ir:</b> ya se hizo ${esc(hechas.join(", ").toLowerCase())}. Busca otra causa.</div>`:""}
+  ${c.notas?`<div class="note n">${esc(c.notas)}</div>`:""}
+  <section class="sec"><h2>Resumen</h2>
+   <div class="stats"><div class="stat"><b>${vs.length}</b><span>Visitas en total</span></div><div class="stat ${s.c}"><b>${s.n}</b><span>En 30 días</span></div><div class="stat"><b>${base?pv(base.onu_despues):"—"}</b><span>Potencia de instalación</span></div></div>
+   ${tc?`<div class="grp">Causas de sus visitas</div><div class="bars">${CAUSAS.filter(k=>causas[k]).map(k=>`<div class="barrow" style="--c:${CAUSA_COL[k]}"><div class="lab"><b>${k}</b><span>${causas[k]} · ${pct(causas[k],tc)}%</span></div><div class="track"><i style="width:${pct(causas[k],tc)}%"></i></div></div>`).join("")}</div>`:""}
+  </section>
+  ${serie.length?`<section class="sec"><h2>Potencia ONU en el tiempo</h2>
+   <div class="chart">${serie.map(x=>{const h=Math.max(6,Math.min(100,(x.v+35)*5));const col={g:"var(--green)",a:"var(--amber)",r:"var(--pink)"}[potCls(x.v)];return `<div><span style="color:${col}">${x.v.toFixed(1)}</span><i style="height:${h}%;background:${col};box-shadow:0 0 10px ${col}"></i></div>`}).join("")}</div>
+   <div class="chart-x">${serie.map(x=>`<span>${fCorta(x.f)}</span>`).join("")}</div><span class="sub">dBm · barra más alta = mejor señal</span></section>`:""}
+  <section class="sec"><div class="sec-h"><h2>Historial de visitas</h2><span class="sub">Toca para ver todo</span></div>
+   ${vs.length?vs.map((v,i)=>visDetalle(v,i===0)).join(""):`<p class="muted" style="margin:0">Sin visitas.</p>`}</section>
+  ${ADM()?cliForm(c):""}`}
+function visDetalle(v,open){const t=TIPOS[v.tipo]?v.tipo:"foco_rojo";const cmp=comparativa(v);
+  const kv=(k,val)=>val?`<div class="kv"><span>${k}</span><span>${val}</span></div>`:"";
+  const pot=(v.sin_senal||num(v.onu_antes)!==null||num(v.onu_despues)!==null)?`<div class="kv"><span>Potencia ONU / OLT</span><span>Antes: ${v.sin_senal?'<span class="pv r">Sin señal</span>':pv(v.onu_antes)+" / "+pv(v.olt_antes)} &nbsp;→&nbsp; Después: ${pv(v.onu_despues)} / ${pv(v.olt_despues)}</span></div>`:"";
+  return `<details class="vis" ${open?"open":""}><summary><span class="dot ${v.estado==="persiste"?"r":v.estado==="pendiente"?"a":"g"}" aria-hidden="true"></span><span style="min-width:0"><b>${fFecha(v.fecha)} · ${TIPOS[t]}</b><small class="muted" style="display:block;font-size:12.5px">${esc([v.companero&&"con "+v.companero,v.estado&&({resuelto:"Resuelto",persiste:"Persiste",pendiente:"Pendiente"}[v.estado])].filter(Boolean).join(" · "))}</small></span>${v.causa?`<span class="tag ${esc(v.causa.split(" ")[0])}">${esc(v.causa)}</span>`:"<span></span>"}</summary>
+  <div class="body">
+   ${v.previa_otra?`<div class="note a">El cliente dijo que antes vino <b>otra cuadrilla</b>.</div>`:""}
+   ${kv("Dijo el cliente",esc((v.sintomas||[]).join(" · ")))}
+   ${kv("Encontrado",esc((v.hallazgos||[]).join(" · ")))}
+   ${cmp?`<div class="note ${cmp.ok?"g":"r"}">${esc(cmp.t)}</div>`:""}
+   ${pot}${kv("NAP / hilo",esc([v.nap,v.hilo&&"H-"+v.hilo].filter(Boolean).join(" ")))}
+   ${kv("Solución",esc((v.soluciones||[]).join(" · ")))}
+   ${kv("Etiqueta de roseta",esc(v.etiqueta_estado))}
+   ${kv("Nota",esc(v.nota))}
+   ${(v.fotos||[]).length?`<div class="thumbs">${v.fotos.map(f=>`<a data-foto="${esc(f.path)}" target="_blank" rel="noopener" aria-label="Abrir foto ${esc(fotoLbl(f.tipo))}"><img data-foto="${esc(f.path)}" alt="${esc(fotoLbl(f.tipo))}"><span>${esc(fotoLbl(f.tipo))}</span></a>`).join("")}</div>`:""}
+   ${ADM()?`<div class="row"><a class="ghost" href="#/visita/${v.id}">${ICON.edit}Editar visita</a></div>`:""}
+  </div></details>`}
+const fotoLbl=t=>(FOTO_TIPOS.find(x=>x[0]===t)||[0,"Otra"])[1];
+function cliForm(c){return `<section class="sec"><details ${editCli?"open":""} id="cliEdit"><summary style="cursor:pointer;font:600 16px var(--display);list-style:none;display:flex;justify-content:space-between;align-items:center;min-height:44px">Editar datos del cliente <span class="sub">›</span></summary>
+  <div class="grid" style="margin-top:10px">
+   <label class="f full">Nombre<input id="ce-nombre" value="${esc(c.nombre)}"></label>
+   <label class="f">Teléfono<input id="ce-telefono" class="mono" inputmode="tel" value="${esc(c.telefono)}"></label>
+   <label class="f">Otro teléfono<input id="ce-telefono2" class="mono" inputmode="tel" value="${esc(c.telefono2)}"></label>
+   <label class="f">IP<input id="ce-ip" class="mono" inputmode="decimal" value="${esc(c.ip)}"></label>
+   <label class="f">NAP / hilo<input id="ce-naphilo" class="mono" value="${esc([c.nap,c.hilo].filter(Boolean).join(" H-"))}" placeholder="A03-3 H-1"></label>
+   <label class="f full">Dirección<input id="ce-direccion" value="${esc(c.direccion)}"></label>
+   <label class="f full">Lugar<select id="ce-lugar"><option value="">Sin lugar</option>${lugarOptions(c.lugar_id)}</select></label>
+   <label class="f full">Coordenadas<input id="ce-coords" class="mono" value="${c.lat!=null?(+c.lat).toFixed(6)+", "+(+c.lng).toFixed(6):""}" placeholder="-4.650000, -79.130000"></label>
+   <label class="f full">Notas del cliente<textarea id="ce-notas" placeholder="Referencias para llegar, horarios, etc.">${esc(c.notas)}</textarea></label>
+   <button class="primary full" data-act="cliGuardar" data-id="${c.id}">Guardar cambios</button>
+   <button class="danger full" data-act="cliBorrar" data-id="${c.id}">Eliminar cliente y sus visitas</button>
+  </div></details></section>`}
+function lugarOptions(sel){const out=[];const walk=(p,d)=>hijos(p).forEach(l=>{out.push(`<option value="${l.id}" ${l.id===sel?"selected":""}>${"  ".repeat(d)}${d?"└ ":""}${esc(l.nombre)}</option>`);walk(l.id,d+1)});walk(null,0);return out.join("")}
+
+/* ============ EDITOR DE VISITA ============ */
+let cur=null;
+function nuevoCur(clienteId){
+  const c=clienteId?Cl(clienteId):null;
+  return {visitaId:null,clienteId:c?c.id:null,decidido:!!c,tipo:"foco_rojo",fecha:Date.now(),pegado:"",
+    nombre:c?.nombre||"",tels:[c?.telefono,...String(c?.telefono2||"").split(/\s*\/\s*/)].filter(Boolean).map((n,i)=>({n,ok:i===0})),
+    ip:c?.ip||"",direccion:c?.direccion||"",lugar_id:c?.lugar_id||null,lugarAuto:null,lat:c?.lat??null,lng:c?.lng??null,precision_m:c?.precision_m??null,coordsTxt:"",mapaLink:"",notasCli:c?.notas||"",
+    nap:c?.nap||"",hilo:c?.hilo||"",companero:LS.get("vz-companero")||"",previa_otra:false,
+    sintomas:[],hallazgos:[],soluciones:[],causa:null,causaManual:false,sin_senal:false,
+    onu_antes:"",olt_antes:"",onu_despues:"",olt_despues:"",etiqueta_estado:"",estado:"resuelto",nota:"",fotos:[],fotosBorradas:[],gps:null}}
+function curDeVisita(v){const c=Cl(v.cliente_id);const n=nuevoCur(c?c.id:null);
+  return {...n,visitaId:v.id,tipo:v.tipo,fecha:ts(v.fecha),companero:v.companero||"",previa_otra:!!v.previa_otra,sintomas:[...(v.sintomas||[])],hallazgos:[...(v.hallazgos||[])],soluciones:[...(v.soluciones||[])],
+    causa:v.causa,causaManual:true,sin_senal:!!v.sin_senal,onu_antes:v.onu_antes??"",olt_antes:v.olt_antes??"",onu_despues:v.onu_despues??"",olt_despues:v.olt_despues??"",
+    nap:v.nap||n.nap,hilo:v.hilo||n.hilo,etiqueta_estado:v.etiqueta_estado||"",estado:v.estado||"resuelto",nota:v.nota||"",fotos:(v.fotos||[]).map(f=>({...f}))}}
+function ensureCur(r){
+  const key=r.name+"/"+(r.id||"");
+  if(cur&&cur._key===key)return;
+  if(r.name==="visita"){const v=S.visitas.find(x=>x.id===r.id);cur=v?curDeVisita(v):nuevoCur(null)}else cur=nuevoCur(r.id);
+  cur._key=key}
+const soporte=()=>cur.tipo!=="instalacion";
+function vEditor(r){
+  ensureCur(r);
+  const c=cur.clienteId?Cl(cur.clienteId):null;
+  return `<div class="top"><div><span class="sub">${cur.visitaId?"Editar visita":"Nueva visita"}${c?" · "+esc(c.nombre):""}</span><h1>${TIPOS[cur.tipo]}</h1></div><span data-syncbox>${syncHTML()}</span></div>
+  ${c?prevHTML(c):""}
+  ${secTipo()}${cur.visitaId?"":secPegar()}<div id="s-match">${secMatch()}</div>${secCliente()}<div id="s-lugar">${secLugar()}</div><div id="s-ubic">${secUbic()}</div>${secEquipo()}
+  <div id="s-diag">${soporte()?secDiag():""}</div><div id="s-pot">${secPot()}</div><div id="s-etq">${secEtiqueta()}</div><div id="s-sol">${secSol()}</div><div id="s-fotos">${secFotos()}</div><div id="s-estado">${secEstado()}</div>
+  ${cur.visitaId?`<button class="danger" data-act="visBorrar">Eliminar esta visita</button>`:""}`}
+function prevHTML(c){const vs=visCli(c.id).filter(v=>v.id!==cur.visitaId);if(!vs.length)return "";const s=semaforo(c.id);
+  const hechas=[...new Set(vs.filter(v=>v.tipo!=="instalacion").slice(0,3).flatMap(v=>v.soluciones||[]))];
+  return `<a class="note ${s.c==="g"?"n":s.c}" href="#/cliente/${c.id}" style="text-decoration:none;display:block"><b>${vs.length} ${vs.length===1?"visita previa":"visitas previas"}</b> · ${SEM_TXT[s.c].toLowerCase()}${hechas.length?`<br>Ya se hizo: ${esc(hechas.join(", ").toLowerCase())}.`:""} <u>Ver historial</u></a>`}
+const chip=(grp,val,label,cls="")=>`<button type="button" class="chip ${cls}" data-chip="${grp}" data-val="${esc(val)}" aria-pressed="${has(grp,val)}">${label||esc(val)}</button>`;
+function has(grp,val){const x=cur[grp];return Array.isArray(x)?x.includes(val):x===val}
+function secTipo(){return `<section class="sec"><div class="sec-h"><h2>Tipo de visita</h2><span class="step">01</span></div><div class="tiles">${Object.entries(TIPOS).map(([k,l])=>`<button type="button" class="tile c-${k}" data-act="tipo" data-val="${k}" aria-pressed="${cur.tipo===k}"><i>${ICON[k]}</i>${l}</button>`).join("")}</div></section>`}
+function secPegar(){return `<section class="sec"><div class="sec-h"><h2>Pega la planificación</h2><span class="step">02</span></div>
+  <label class="f">Mensaje que te llega<textarea id="pegado" placeholder="Cliente, …&#10;Tel. …&#10;IP …&#10;Dirección, …">${esc(cur.pegado)}</textarea></label>
+  <div class="row"><button type="button" class="ghost grow" data-act="pegar">${ICON.copy}Pegar del portapapeles</button><button type="button" class="ghost grow" data-act="leer">Leer datos</button></div>
+  <div class="grp">O busca un cliente que ya existe</div>
+  <div class="searchbox">${ICON.search}<input id="cq" type="search" placeholder="Nombre, teléfono, IP…" aria-label="Buscar cliente existente"></div><div id="cqres"></div></section>`}
+function candidatos(){
+  const tels=cur.tels.map(t=>digits(t.n)).filter(x=>x.length>=7);const nm=norm(cur.nombre);
+  return S.clientes.filter(c=>c.id!==cur.clienteId).map(c=>{const why=[];
+    const ct=digits((c.telefono||"")+" "+(c.telefono2||""));
+    if(tels.some(t=>ct.includes(t)))why.push("mismo teléfono");
+    if(nm&&norm(c.nombre)===nm)why.push("mismo nombre");
+    if(cur.ip&&c.ip&&cur.ip.trim()===c.ip.trim())why.push("misma IP");
+    if(cur.lat!=null&&c.lat!=null){const d=dist(cur.lat,cur.lng,c.lat,c.lng);if(d<=30)why.push("a "+Math.round(d)+" m")}
+    return{c,why}}).filter(x=>x.why.length).slice(0,3)}
+function secMatch(){if(cur.decidido||cur.visitaId)return "";const cs=candidatos();if(!cs.length)return "";
+  return cs.map(({c,why})=>`<section class="note a" style="display:grid;gap:10px"><div><b>¿Es el mismo cliente?</b><br>Ya existe <b>${esc(c.nombre)}</b> (${esc(why.join(", "))}) · ${visCli(c.id).length} visitas previas${c.lugar_id?" · "+esc(lugarTxt(c.lugar_id)):""}.</div>
+   <div class="grid"><button type="button" class="ghost" style="border-color:var(--amber)" data-act="mismo" data-id="${c.id}">Sí, es el mismo</button><button type="button" class="ghost" data-act="nuevoCli">No, es nuevo</button></div></section>`).join("")}
+function secCliente(){
+  const tels=cur.tels.map((t,i)=>`<div class="row"><button type="button" class="chip ${t.ok?"ok":""} grow" style="text-align:left;font-family:var(--mono)" data-act="telOk" data-i="${i}" aria-pressed="${t.ok}">${esc(t.n)} <small>${t.ok?"Respondió":"Tocar si respondió"}</small></button><button type="button" class="ghost" data-act="telDel" data-i="${i}" aria-label="Quitar ${esc(t.n)}">${ICON.x}</button></div>`).join("");
+  return `<section class="sec"><div class="sec-h"><h2>Datos del cliente</h2><span class="step">03</span></div>
+  <div class="grid">
+   <label class="f full">Nombre<input data-k="nombre" value="${esc(cur.nombre)}" autocomplete="off"></label>
+   <div class="full" style="display:grid;gap:8px"><span class="sub">Teléfono · deja el que respondió</span><div id="tels" style="display:grid;gap:8px">${tels}</div>
+     <div class="row"><input class="in mono grow" id="telNuevo" inputmode="tel" placeholder="Agregar teléfono" aria-label="Agregar teléfono"><button type="button" class="ghost" data-act="telAdd">${ICON.plus}</button></div></div>
+   <label class="f">IP<input data-k="ip" class="mono" inputmode="decimal" value="${esc(cur.ip)}"></label>
+   <label class="f">Fecha<input type="datetime-local" data-k="fechaTxt" value="${toLocalInput(cur.fecha)}"></label>
+   <label class="f full">Dirección<input data-k="direccion" value="${esc(cur.direccion)}" autocomplete="off"></label>
+  </div></section>`}
+const toLocalInput=t=>{const d=new Date(t);const p=n=>String(n).padStart(2,"0");return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`};
+function secLugar(){
+  const ch=lugarChain(cur.lugar_id);const niveles=["Parroquia","Sector","Barrio"];let sel="";
+  for(let i=0;i<3;i++){const parent=i===0?null:ch[i-1];if(i>0&&!parent)break;const ops=hijos(parent?parent.id:null);if(i>0&&!ops.length)break;
+    sel+=`<label class="f">${niveles[i]}<select data-lvl="${i}"><option value="">${i===0?"Elegir…":"—"}</option>${ops.map(l=>`<option value="${l.id}" ${ch[i]&&ch[i].id===l.id?"selected":""}>${esc(l.nombre)}</option>`).join("")}</select></label>`}
+  const deep=ch[ch.length-1];const addParent=!deep?null:ch.length<3?deep:ch[ch.length-2];
+  const auto=cur.lugarAuto&&cur.lugarAuto.id===cur.lugar_id;
+  return `<section class="sec"><div class="sec-h"><h2>Lugar</h2>${auto?`<span class="tag" style="color:#bff7d8">Detectado: «${esc(cur.lugarAuto.w)}»</span>`:`<span class="step">04</span>`}</div>
+   <div class="grid">${sel}</div>
+   <div class="row"><input class="in grow" id="lugNuevo" placeholder="${addParent?"Nuevo lugar dentro de "+esc(addParent.nombre):"Nueva parroquia"}" aria-label="Nuevo lugar"><button type="button" class="ghost" data-act="lugAdd">${ICON.plus}Agregar</button></div>
+   ${deep&&!auto?`<div class="row"><input class="in grow" id="lugPalabra" placeholder="Palabra de la dirección para reconocer «${esc(deep.nombre)}»" aria-label="Palabra clave"><button type="button" class="ghost" data-act="lugPalabra">Recordar</button></div>`:""}
+  </section>`}
+function secUbic(){
+  const has=cur.lat!=null;const g=cur.gps;
+  const prec=cur.precision_m!=null?Math.round(cur.precision_m):null;
+  return `<section class="sec"><div class="sec-h"><h2>Ubicación de la casa</h2><span class="step">05</span></div>
+   <button type="button" class="primary" data-act="gps">${ICON.gps}${g&&g.busy?"Buscando señal GPS…":has?"Volver a tomar mi ubicación":"Guardar mi ubicación aquí"}</button>
+   ${g&&g.busy?`<div class="note n">Precisión actual: ${g.acc?"±"+Math.round(g.acc)+" m":"esperando…"}. Mantente quieto, de preferencia afuera de la casa.</div>`:""}
+   ${g&&g.err?`<div class="note r">${esc(g.err)}</div>`:""}
+   ${has?`<div class="note ${prec==null||prec<=20?"g":prec<=50?"a":"r"}"><b>${(+cur.lat).toFixed(6)}, ${(+cur.lng).toFixed(6)}</b>${prec!=null?` · precisión ±${prec} m${prec>50?". Es poco precisa: sal al aire libre e intenta de nuevo.":""}`:" · ajustada a mano"}</div>
+     <div class="row"><a class="ghost grow" href="${mapsDir(cur)}" target="_blank" rel="noopener">${ICON.nav}Abrir en Google Maps</a><button type="button" class="ghost" data-act="ubicBorrar">Quitar</button></div>
+     ${navigator.onLine&&window.L?`<div class="map" id="miniMap" aria-label="Mapa: arrastra el pin para corregir"></div><span class="sub">Si quedó desfasado, arrastra el pin hasta la casa.</span>`:""}`:""}
+   <label class="f">O pega coordenadas o un enlace de Google Maps<input id="coordsTxt" class="mono" value="${esc(cur.coordsTxt)}" placeholder="4°38'01.04&quot;S 79°07'52.85&quot;W" autocomplete="off"></label>
+   ${cur.mapaLink&&!has?`<div class="note a">El enlace corto de Maps no trae las coordenadas. <a href="${esc(cur.mapaLink)}" target="_blank" rel="noopener">Ábrelo</a>, mantén presionado el punto y copia las coordenadas aquí, o toma tu ubicación al llegar.</div>`:""}
+  </section>`}
+function secEquipo(){return `<section class="sec"><div class="sec-h"><h2>Cuadrilla</h2><span class="step">06</span></div>
+  <label class="f">Fui con<input data-k="companero" value="${esc(cur.companero)}" placeholder="Nombre del compañero" list="compList" autocomplete="off"></label>
+  <datalist id="compList">${[...new Set(S.visitas.map(v=>v.companero).filter(Boolean))].map(n=>`<option value="${esc(n)}">`).join("")}</datalist>
+  ${soporte()?`<button type="button" class="chip amber" data-act="previa" aria-pressed="${cur.previa_otra}">El cliente dice que antes vino otra cuadrilla</button>`:""}</section>`}
+function comparativa(v){const H=v.hallazgos||[],Sx=v.sintomas||[];if(!H.length)return null;
+  const cli=H.filter(h=>CAUSA_DE[h]==="Cliente");
+  if(Sx.includes("Dice que nadie tocó nada")&&cli.length)return{ok:false,t:"No coincide: el cliente dice que nadie tocó nada, pero se encontró: "+cli.join(", ").toLowerCase()+"."};
+  if(H.includes("Todo funcionaba al llegar")&&Sx.length)return{ok:false,t:"No coincide: el cliente reportó falla, pero todo funcionaba al llegar."};
+  return{ok:true,t:"Coincide: lo encontrado explica lo que reportó el cliente."}}
+function sugerirCausa(){const n={};cur.hallazgos.forEach(h=>{const c=CAUSA_DE[h];if(c)n[c]=(n[c]||0)+1});let best=null,b=0;CAUSAS.forEach(c=>{if((n[c]||0)>b){b=n[c];best=c}});return{best,n}}
+function secDiag(){
+  const extras=cur.hallazgos.filter(h=>!(h in CAUSA_DE));const cmp=comparativa(cur);const sg=sugerirCausa();
+  if(!cur.causaManual)cur.causa=sg.best;
+  return `<section class="sec"><div class="sec-h"><h2>Lo que dice el cliente</h2><span class="step">07</span></div><div class="chips">${SINTOMAS.map(s=>chip("sintomas",s)).join("")}</div></section>
+  <section class="sec" style="margin-top:16px"><div class="sec-h"><h2>Lo que encontraste</h2><span class="step">08</span></div>
+   ${HALLAZGOS.map(g=>`<div class="grp">${g.g}</div><div class="chips">${g.i.map(([h])=>chip("hallazgos",h)).join("")}</div>`).join("")}
+   ${extras.length?`<div class="grp">Otros</div><div class="chips">${extras.map(h=>chip("hallazgos",h)).join("")}</div>`:""}
+   <div class="row"><input class="in grow" id="hallOtro" placeholder="Otro hallazgo" aria-label="Otro hallazgo"><button type="button" class="ghost" data-act="otro" data-grp="hallazgos" data-src="hallOtro">${ICON.plus}</button></div></section>
+  <section class="sec" style="margin-top:16px"><div class="sec-h"><h2>Comparativa y causa</h2><span class="step">09</span></div>
+   ${cmp?`<div class="grid"><div class="box"><span class="grp" style="margin:0">Cliente</span><span style="font-size:14px">${esc(cur.sintomas.join(", ")||"Sin marcar")}</span></div><div class="box"><span class="grp" style="margin:0">Técnico</span><span style="font-size:14px">${esc(cur.hallazgos.join(", "))}</span></div></div><div class="note ${cmp.ok?"g":"r"}">${esc(cmp.t)}</div>`:`<div class="note n">Marca lo que encontraste para comparar con lo que dice el cliente.</div>`}
+   <div class="grp">¿De quién es la falla? ${cur.causaManual?"":"(sugerida)"}</div>
+   <div class="tiles">${CAUSAS.map(c=>`<button type="button" class="tile" style="--c:${CAUSA_COL[c]};justify-content:center;flex-direction:column;gap:2px" data-act="causa" data-val="${c}" aria-pressed="${cur.causa===c}"><span>${c}</span><small class="sub">${c===sg.best?"Sugerida":sg.n[c]?sg.n[c]+" hallazgo(s)":"&nbsp;"}</small></button>`).join("")}</div></section>`}
+function secPot(){
+  const inst=cur.tipo==="instalacion";const base=cur.clienteId?baseline(cur.clienteId,cur.visitaId):null;
+  const f=(k,lab,dis)=>`<input class="in mono" data-k="${k}" inputmode="decimal" value="${esc(cur[k])}" placeholder="-20.50" aria-label="${lab}" ${dis?"disabled":""}>`;
+  return `<section class="sec"><div class="sec-h"><h2>${inst?"Potencia final (línea base)":"Potencia"}</h2>${inst?`<span class="step">10</span>`:`<button type="button" class="chip red" data-act="sinsenal" aria-pressed="${cur.sin_senal}">Sin señal / Offline</button>`}</div>
+   ${base&&!inst?`<span class="sub">Instalación (${fFecha(base.fecha)}): ONU ${pv(base.onu_despues)} / OLT ${pv(base.olt_despues)}</span>`:""}
+   <div class="gtab"><span></span><b>ONU Rx (power meter)</b><b>OLT Rx (SmartOLT)</b>
+    ${inst?"":`<span>Antes</span>${cur.sin_senal?'<span class="pv r" style="text-align:center">Sin señal</span><span class="pv r" style="text-align:center">Sin señal</span>':f("onu_antes","ONU antes")+f("olt_antes","OLT antes")}`}
+    <span>${inst?"Final":"Después"}</span>${f("onu_despues","ONU después")+f("olt_despues","OLT después")}</div>
+   <span class="sub">Puedes pegar «-17.69 dBm / -23.77 dBm» en ONU y se reparte solo.</span>
+   <div id="potRes">${potRes()}</div>
+   <div class="grid"><label class="f">NAP<input data-k="nap" class="mono" value="${esc(cur.nap)}" placeholder="A03-3" autocapitalize="characters" autocomplete="off"></label><label class="f">Hilo<input data-k="hilo" class="mono" inputmode="numeric" value="${esc(cur.hilo)}" placeholder="1"></label></div></section>`}
+function potRes(){
+  const out=[];const base=cur.clienteId?baseline(cur.clienteId,cur.visitaId):null;
+  const a=num(cur.onu_antes),d=num(cur.onu_despues),ao=num(cur.olt_antes),dO=num(cur.olt_despues);
+  if(cur.tipo!=="instalacion"){
+    if(base&&a!==null&&!cur.sin_senal){const drop=num(base.onu_despues)-a;if(drop>=3)out.push(`<div class="note r"><b>Bajó ${drop.toFixed(1)} dB desde la instalación.</b> La instalación quedó bien; el problema apareció después.</div>`)}
+    if(base&&cur.sin_senal)out.push(`<div class="note r">Sin señal, pero en la instalación tenía ${num(base.onu_despues).toFixed(2)} dBm: algo se dañó o se desconectó después.</div>`);
+    const g=[];if(a!==null&&d!==null&&!cur.sin_senal)g.push("ONU "+(d-a>=0?"+":"")+(d-a).toFixed(2)+" dB");if(ao!==null&&dO!==null&&!cur.sin_senal)g.push("OLT "+(dO-ao>=0?"+":"")+(dO-ao).toFixed(2)+" dB");
+    const dd=a!==null&&d!==null?d-a:dO-ao;if(g.length)out.push(`<div class="note ${dd>=0?"g":"r"}"><b>Mejoró:</b> ${g.join(" / ")}${base&&d!==null?` · quedó a ${Math.abs(num(base.onu_despues)-d).toFixed(1)} dB de la instalación`:""}</div>`);
+    else if(cur.sin_senal&&d!==null)out.push(`<div class="note g"><b>Recuperó señal:</b> ONU ${d.toFixed(2)} dBm.</div>`)}
+  if(d!==null&&potCls(d)!=="g")out.push(`<div class="note a">La potencia final (${d.toFixed(2)} dBm) está ${potCls(d)==="r"?"en rojo":"en ámbar"}. Lo ideal es mejor que -25 dBm.</div>`);
+  return out.join("")}
+function etiquetaTxt(){return [cur.nombre.trim(),[cur.nap.trim().toUpperCase(),cur.hilo.trim()&&"H-"+cur.hilo.trim()].filter(Boolean).join(" ")].filter(Boolean).join("\n")}
+function secEtiqueta(){const t=etiquetaTxt();return `<section class="sec"><div class="sec-h"><h2>Etiqueta de roseta</h2><span class="step">11</span></div>
+  <div class="box" style="font:600 16px/1.5 var(--mono);white-space:pre-line;text-align:center" id="etqTxt">${esc(t)||'<span class="muted">Escribe nombre, NAP e hilo</span>'}</div>
+  <button type="button" class="ghost" data-act="etqCopiar">${ICON.copy}Copiar texto de la etiqueta</button>
+  <div class="grp">¿Cómo estaba la etiqueta?</div><div class="chips">${ETIQUETA.map(e=>chip("etiqueta_estado",e,null,e==="No coincide"?"red":e==="Borrosa o falta"?"amber":"ok")).join("")}</div>
+  ${cur.etiqueta_estado==="No coincide"?`<div class="note r">La etiqueta no coincide con la NAP/hilo real: alguien cambió la conexión sin registrarlo.</div>`:""}</section>`}
+function secSol(){const extras=cur.soluciones.filter(s=>!SOLUCIONES.includes(s));return `<section class="sec"><div class="sec-h"><h2>${soporte()?"Solución aplicada":"Trabajo realizado"}</h2><span class="step">12</span></div>
+  <div class="chips">${[...SOLUCIONES,...extras].map(s=>chip("soluciones",s)).join("")}</div>
+  <div class="row"><input class="in grow" id="solOtro" placeholder="Otra solución" aria-label="Otra solución"><button type="button" class="ghost" data-act="otro" data-grp="soluciones" data-src="solOtro">${ICON.plus}</button></div>
+  <label class="f">Nota (opcional)<textarea data-k="nota" placeholder="Algo más que quieras anotar" style="min-height:70px">${esc(cur.nota)}</textarea></label></section>`}
+function secFotos(){
+  const slot=([k,l,sub])=>{const f=cur.fotos.find(x=>x.tipo===k);
+    return f?`<div class="ph"><img data-foto="${esc(f.path)}" alt="${esc(l)}"><span class="lbl">${esc(l)}</span><button type="button" class="x" data-act="fotoDel" data-path="${esc(f.path)}" aria-label="Quitar foto ${esc(l)}">${ICON.x}</button></div>`
+      :`<label class="ph">+ ${esc(l)}<small>${esc(sub)}</small><input type="file" accept="image/*" data-foto-tipo="${k}" aria-label="Foto ${esc(l)}"></label>`};
+  const otras=cur.fotos.filter(f=>!FOTO_TIPOS.some(t=>t[0]===f.tipo));
+  return `<section class="sec"><div class="sec-h"><h2>Fotos de evidencia</h2><span class="sub">${DEMO?"Se guardan en este celular":"Se suben cuando hay señal"}</span></div>
+  <div class="photos">${FOTO_TIPOS.map(slot).join("")}${otras.map(f=>`<div class="ph"><img data-foto="${esc(f.path)}" alt="Otra foto"><span class="lbl">Otra</span><button type="button" class="x" data-act="fotoDel" data-path="${esc(f.path)}" aria-label="Quitar foto">${ICON.x}</button></div>`).join("")}
+  <label class="ph">+ Otra foto<small>Opcional</small><input type="file" accept="image/*" data-foto-tipo="otra" aria-label="Otra foto"></label></div></section>`}
+function secEstado(){return `<section class="sec"><div class="sec-h"><h2>¿Cómo quedó?</h2><span class="step">13</span></div><div class="chips">${ESTADOS.map(([k,l,c])=>chip("estado",k,l,c)).join("")}</div></section>`}
+function re(id,html){const el=$(id);if(el){if(id==="s-ubic"&&miniMap){miniMap.remove();miniMap=null}el.innerHTML=html;hydratePhotos(el);if(id==="s-ubic")initMiniMap()}}
+function initMiniMap(){
+  const el=$("miniMap");if(!el||!window.L||cur.lat==null)return;
+  miniMap=L.map(el,{zoomControl:true,attributionControl:true}).setView([cur.lat,cur.lng],18);
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(miniMap);
+  const m=L.marker([cur.lat,cur.lng],{draggable:true,icon:pinIcon("#e879f9",22)}).addTo(miniMap);
+  m.on("dragend",()=>{const p=m.getLatLng();cur.lat=p.lat;cur.lng=p.lng;cur.precision_m=null;re("s-ubic",secUbic())})}
+const pinIcon=(col,s)=>L.divIcon({className:"",iconSize:[s,s],iconAnchor:[s/2,s/2],html:`<span style="display:block;width:${s}px;height:${s}px;border-radius:50%;background:${col};border:3px solid #fff;box-shadow:0 0 10px ${col}"></span>`});
+
+function leerPlan(){
+  const p=parse(cur.pegado);
+  if(p.cliente)cur.nombre=p.cliente;
+  const ts_=telsFrom(p.tel);if(ts_.length)cur.tels=ts_.map((n,i)=>({n,ok:i===0}));
+  if(p.ip)cur.ip=p.ip;if(p.direccion)cur.direccion=p.direccion;
+  if(p.nap)cur.nap=p.nap;if(p.hilo)cur.hilo=p.hilo;if(p.potAntes&&cur.tipo!=="instalacion")cur.onu_antes=p.potAntes;
+  if(/potencia/i.test(p.soporte||""))cur.tipo="potencia";else if(/tv|iptv/i.test(p.soporte||""))cur.tipo="tv";
+  const co=coordsDec(p.coords)||coordsDec(p.mapa);if(co){cur.lat=co[0];cur.lng=co[1];cur.precision_m=null;cur.coordsTxt=p.coords||""}else if(p.mapa)cur.mapaLink=p.mapa;
+  const det=detectarLugar([p.direccion,p.extra].join(" "));if(det&&!cur.lugar_id){cur.lugar_id=det.id;cur.lugarAuto=det}else if(det&&det.id===cur.lugar_id)cur.lugarAuto=det;
+  if(p.extra&&!cur.nota)cur.nota=p.extra;
+  cur.decidido=!!cur.clienteId;
+  render.keepScroll=true;render();
+  const ok=[p.cliente&&"cliente",ts_.length&&"teléfono",p.ip&&"IP",p.direccion&&"dirección",det&&"lugar",co&&"coordenadas"].filter(Boolean);
+  toast(ok.length?"Leído: "+ok.join(", "):"No encontré datos en el texto")}
+function usarCliente(id){const c=Cl(id);if(!c)return;cur.clienteId=id;cur.decidido=true;
+  if(!cur.nombre||norm(cur.nombre).replace(/[^a-z0-9]/g,"")===norm(c.nombre).replace(/[^a-z0-9]/g,""))cur.nombre=c.nombre;
+  const known=[c.telefono,...String(c.telefono2||"").split(/\s*\/\s*/)].filter(Boolean);
+  known.forEach(n=>{if(!cur.tels.some(t=>digits(t.n)===digits(n)))cur.tels.push({n,ok:!cur.tels.length})});
+  ["ip","direccion","nap","hilo"].forEach(k=>{if(!cur[k])cur[k]=c[k]||""});
+  if(!cur.lugar_id)cur.lugar_id=c.lugar_id;if(cur.lat==null&&c.lat!=null){cur.lat=c.lat;cur.lng=c.lng;cur.precision_m=c.precision_m}
+  cur.notasCli=c.notas||"";render.keepScroll=true;render()}
+
+function tomarGPS(){
+  if(!navigator.geolocation){cur.gps={err:"Este navegador no permite usar el GPS."};re("s-ubic",secUbic());return}
+  if(!window.isSecureContext){cur.gps={err:"El GPS solo funciona si la página se abre con https."};re("s-ubic",secUbic());return}
+  cur.gps={busy:true,acc:null};re("s-ubic",secUbic());let best=null;const t0=Date.now();
+  const fin=()=>{navigator.geolocation.clearWatch(w);clearTimeout(to);if(best){cur.lat=best.latitude;cur.lng=best.longitude;cur.precision_m=best.accuracy;cur.gps=null;cur.decidido=cur.decidido||!!cur.clienteId;re("s-ubic",secUbic());re("s-match",secMatch());toast("Ubicación guardada (±"+Math.round(best.accuracy)+" m)")}};
+  const w=navigator.geolocation.watchPosition(p=>{if(!best||p.coords.accuracy<best.accuracy)best=p.coords;if(cur.gps)cur.gps.acc=best.accuracy;
+      if(best.accuracy<=10||Date.now()-t0>12000)fin();else re("s-ubic",secUbic())},
+    e=>{navigator.geolocation.clearWatch(w);clearTimeout(to);if(best){fin();return}
+      cur.gps={err:e.code===1?"No diste permiso de ubicación. En el iPhone: Ajustes › Privacidad › Localización › Safari › «Al usar la app».":"No se pudo obtener la ubicación. Sal al aire libre e intenta de nuevo."};re("s-ubic",secUbic())},
+    {enableHighAccuracy:true,maximumAge:0,timeout:20000});
+  const to=setTimeout(()=>{if(best)fin();else{navigator.geolocation.clearWatch(w);cur.gps={err:"El GPS tardó demasiado. Intenta de nuevo afuera de la casa."};re("s-ubic",secUbic())}},20000)}
+
+async function agregarFoto(input){
+  const file=input.files&&input.files[0];if(!file)return;const tipo=input.dataset.fotoTipo;
+  toast("Procesando foto…");
+  try{const blob=await comprimir(file);if(!cur.visitaId)cur.visitaId_pre=cur.visitaId_pre||uid();
+    const vid=cur.visitaId||cur.visitaId_pre;const cid=cur.clienteId||(cur.clienteId_pre=cur.clienteId_pre||uid());
+    const path=`${cid}/${vid}/${tipo}-${Date.now().toString(36)}.jpg`;
+    await idb.set(path,blob);
+    if(tipo!=="otra"){const old=cur.fotos.find(f=>f.tipo===tipo);if(old)quitarFoto(old.path,true)}
+    cur.fotos.push({path,tipo,nuevo:true});re("s-fotos",secFotos());toast("Foto agregada ("+Math.round(blob.size/1024)+" KB)")}
+  catch(e){toast("No se pudo leer la foto")}}
+function quitarFoto(path,silent){const f=cur.fotos.find(x=>x.path===path);if(!f)return;cur.fotos=cur.fotos.filter(x=>x.path!==path);
+  if(f.nuevo)idb.del(path);else cur.fotosBorradas.push(path);if(!silent)re("s-fotos",secFotos())}
+
+function guardar(){
+  if(!cur.nombre.trim()){toast("Falta el nombre del cliente");document.querySelector('[data-k="nombre"]')?.focus();return}
+  const now=new Date().toISOString();
+  const cid=cur.clienteId||cur.clienteId_pre||uid();const prev=Cl(cid)||{};
+  const prim=cur.tels.find(t=>t.ok)||cur.tels[0];const otros=cur.tels.filter(t=>t!==prim).map(t=>t.n);
+  let notas=cur.notasCli||prev.notas||null;if(cur.mapaLink&&cur.lat==null&&!(notas||"").includes(cur.mapaLink))notas=[notas,"Ubicación: "+cur.mapaLink].filter(Boolean).join("\n");
+  const cli={...pick("clientes",prev),id:cid,nombre:cur.nombre.trim(),telefono:prim?prim.n:null,telefono2:otros.join(" / ")||null,ip:cur.ip.trim()||null,direccion:cur.direccion.trim()||null,
+    lugar_id:cur.lugar_id||null,lat:cur.lat,lng:cur.lng,precision_m:cur.precision_m,nap:cur.nap.trim().toUpperCase()||prev.nap||null,hilo:String(cur.hilo).trim()||prev.hilo||null,notas,creado:prev.creado||now,editado:now};
+  const sp=soporte();const vid=cur.visitaId||cur.visitaId_pre||uid();const prevV=S.visitas.find(v=>v.id===vid)||{};
+  const vis={id:vid,cliente_id:cid,fecha:new Date(cur.fecha).toISOString(),tipo:cur.tipo,companero:cur.companero.trim()||null,previa_otra:sp&&cur.previa_otra,
+    sintomas:sp?cur.sintomas:[],hallazgos:sp?cur.hallazgos:[],soluciones:cur.soluciones,causa:sp?cur.causa||null:null,sin_senal:sp&&cur.sin_senal,
+    onu_antes:sp&&!cur.sin_senal?num(cur.onu_antes):null,olt_antes:sp&&!cur.sin_senal?num(cur.olt_antes):null,onu_despues:num(cur.onu_despues),olt_despues:num(cur.olt_despues),
+    nap:cur.nap.trim().toUpperCase()||null,hilo:String(cur.hilo).trim()||null,etiqueta_estado:cur.etiqueta_estado||null,estado:cur.estado||null,nota:cur.nota.trim()||null,
+    fotos:cur.fotos.map(f=>({path:f.path,tipo:f.tipo})),creado:prevV.creado||now};
+  const ops=[{k:"up",t:"clientes",row:cli},...cur.fotos.filter(f=>f.nuevo).map(f=>({k:"foto",path:f.path})),{k:"up",t:"visitas",row:vis},...cur.fotosBorradas.map(p=>({k:"fotodel",path:p}))];
+  if(cur.companero.trim())LS.set("vz-companero",cur.companero.trim());
+  commit(ops);cur=null;location.hash="#/cliente/"+cid;toast("Visita guardada")}
+
+/* ============ PANEL ============ */
+let P={per:"30",raiz:"",drill:null};
+function periodo(){const now=Date.now();if(P.per==="todo")return 0;if(P.per==="mes"){const d=new Date();return new Date(d.getFullYear(),d.getMonth(),1).getTime()}return now-(+P.per)*DAY}
+function vPanel(){
+  const desde=periodo();
+  const enRaiz=v=>{if(!P.raiz)return true;const c=Cl(v.cliente_id);const r=c&&lugarRaiz(c.lugar_id);return r&&r.id===P.raiz};
+  const V=S.visitas.filter(v=>ts(v.fecha)>=desde&&enRaiz(v));const sop=V.filter(v=>v.tipo!=="instalacion");
+  const causas={};sop.forEach(v=>{const k=v.causa||"Sin causa";causas[k]=(causas[k]||0)+1});
+  const porCli={};V.forEach(v=>porCli[v.cliente_id]=(porCli[v.cliente_id]||0)+1);
+  const top=Object.entries(porCli).sort((a,b)=>b[1]-a[1]).slice(0,10);const maxTop=top[0]?top[0][1]:1;
+  const porLug={};V.forEach(v=>{const c=Cl(v.cliente_id);const ch=c?lugarChain(c.lugar_id):[];const k=ch[0]?ch[0].id:"_";(porLug[k]=porLug[k]||{n:0,cl:new Set(),sub:{}}).n++;porLug[k].cl.add(v.cliente_id);const s=ch[1]?ch[1].nombre:null;if(s)porLug[k].sub[s]=(porLug[k].sub[s]||0)+1});
+  const halls={};sop.forEach(v=>(v.hallazgos||[]).forEach(h=>halls[h]=(halls[h]||0)+1));
+  const ret=retornos(V);const rojos=S.clientes.filter(c=>semaforo(c.id).c==="r"&&(!P.raiz||lugarRaiz(c.lugar_id)?.id===P.raiz)).length;
+  const noco=sop.filter(v=>{const c=comparativa(v);return c&&!c.ok});
+  const tipos={};V.forEach(v=>tipos[v.tipo]=(tipos[v.tipo]||0)+1);
+  const raices=hijos(null);
+  const drill=P.drill?drillList(V,sop,ret):"";
+  const bar=(k,n,tot,col,act)=>`<button type="button" class="barrow" style="--c:${col}" ${act?`data-act="drill" data-kind="${act[0]}" data-key="${esc(act[1])}"`:""}><span class="lab"><b>${esc(k)}</b><span>${n} · ${pct(n,tot)}%</span></span><span class="track"><i style="width:${pct(n,tot)}%"></i></span></button>`;
+  return `<div class="top"><div><span class="sub">${ADM()?"Panel":"Panel · solo lectura"}</span><h1>Panel</h1></div><span data-syncbox>${syncHTML()}</span></div>
+  <div class="grid"><label class="f">Periodo<select id="pPer"><option value="7" ${P.per==="7"?"selected":""}>Últimos 7 días</option><option value="30" ${P.per==="30"?"selected":""}>Últimos 30 días</option><option value="mes" ${P.per==="mes"?"selected":""}>Este mes</option><option value="365" ${P.per==="365"?"selected":""}>Último año</option><option value="todo" ${P.per==="todo"?"selected":""}>Todo</option></select></label>
+   <label class="f">Parroquia<select id="pRaiz"><option value="">Todas</option>${raices.map(l=>`<option value="${l.id}" ${P.raiz===l.id?"selected":""}>${esc(l.nombre)}</option>`).join("")}</select></label></div>
+  <div class="stats"><button class="stat" data-act="drill" data-kind="todas" data-key=""><b>${V.length}</b><span>Visitas</span></button><button class="stat ${rojos?"r":"g"}" data-act="drill" data-kind="rojos" data-key=""><b>${rojos}</b><span>Clientes en rojo</span></button><button class="stat ${ret.pct>20?"r":ret.pct>10?"a":"g"}" data-act="drill" data-kind="retorno" data-key=""><b>${ret.pct}%</b><span>Mi tasa de retorno</span></button></div>
+  <div id="drill">${drill}</div>
+  ${V.length?"":`<div class="empty">No hay visitas en este periodo.</div>`}
+  ${sop.length?`<section class="sec"><div class="sec-h"><h2>¿De quién es la falla?</h2><span class="sub">Toca para ver</span></div><div class="bars">${[...CAUSAS,"Sin causa"].filter(k=>causas[k]).map(k=>bar(k,causas[k],sop.length,CAUSA_COL[k]||"#7d73a0",["causa",k])).join("")}</div>
+   ${noco.length?`<button type="button" class="note r" style="text-align:left;border-radius:14px" data-act="drill" data-kind="noco" data-key=""><b>${noco.length} ${noco.length===1?"visita":"visitas"} donde la versión del cliente no coincide</b> con lo encontrado. Ver</button>`:""}</section>`:""}
+  ${top.length?`<section class="sec"><h2>Clientes más visitados</h2><div>${top.map(([id,n],i)=>{const c=Cl(id)||{nombre:"(eliminado)"};const s=semaforo(id);return `<a class="rank" href="#/cliente/${id}"><span class="n">${i+1}</span><span style="min-width:0"><b><span class="dot ${s.c}" aria-hidden="true"></span> ${esc(c.nombre)}</b><small>${esc(lugarTxt(c.lugar_id)||"Sin lugar")}</small><span class="track" style="margin-top:6px;height:6px"><i style="width:${Math.round(n*100/maxTop)}%;background:${s.c==="r"?"var(--pink)":s.c==="a"?"var(--amber)":"var(--purple)"}"></i></span></span><span class="v">${n} · ${pct(n,V.length)}%</span></a>`}).join("")}</div></section>`:""}
+  ${V.length?`<section class="sec"><h2>Visitas por lugar</h2><div class="bars">${Object.entries(porLug).sort((a,b)=>b[1].n-a[1].n).map(([k,o])=>{const nm=k==="_"?"Sin lugar":(Lg(k)||{}).nombre;const subs=Object.entries(o.sub).sort((a,b)=>b[1]-a[1]);
+     return `<div>${bar(nm+" · "+o.cl.size+" clientes",o.n,V.length,"var(--cyan)",["lugar",k])}${subs.length?`<div class="sub" style="padding-left:10px">${subs.map(([s,n])=>esc(s)+" "+n).join(" · ")}</div>`:""}</div>`}).join("")}</div></section>`:""}
+  ${Object.keys(halls).length?`<section class="sec"><div class="sec-h"><h2>Hallazgos más comunes</h2><span class="sub">Toca para ver</span></div><div class="bars">${Object.entries(halls).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([h,n])=>bar(h,n,sop.length,CAUSA_COL[CAUSA_DE[h]]||"#7d73a0",["hallazgo",h])).join("")}</div></section>`:""}
+  ${V.length?`<section class="sec"><h2>Por tipo de visita</h2><div class="bars">${Object.entries(tipos).sort((a,b)=>b[1]-a[1]).map(([t,n])=>bar(TIPOS[t]||t,n,V.length,{foco_rojo:"var(--pink)",instalacion:"var(--purple)",tv:"var(--cyan)",potencia:"var(--orange)"}[t],["tipo",t])).join("")}</div>
+   <p class="muted" style="margin:0">Mi tasa de retorno: de ${ret.total} visitas, ${ret.n} tuvieron otra visita de soporte al mismo cliente dentro de 30 días.${sop.filter(v=>v.previa_otra).length?` En ${sop.filter(v=>v.previa_otra).length} el cliente dijo que antes vino otra cuadrilla.`:""}</p></section>`:""}
+  <button class="ghost" data-act="csv">${ICON.dl}Descargar visitas (CSV para Excel)</button>`}
+function retornos(V){const list=[];V.forEach(v=>{const t=ts(v.fecha);const sig=S.visitas.find(w=>w.cliente_id===v.cliente_id&&w.id!==v.id&&w.tipo!=="instalacion"&&ts(w.fecha)>t&&ts(w.fecha)-t<=30*DAY);if(sig)list.push(v)});return{n:list.length,total:V.length,pct:pct(list.length,V.length),list}}
+function drillList(V,sop,ret){const {kind,key}=P.drill;let t="",L=[];
+  if(kind==="todas"){t="Todas las visitas";L=V}
+  else if(kind==="causa"){t="Causa: "+key;L=sop.filter(v=>(v.causa||"Sin causa")===key)}
+  else if(kind==="hallazgo"){t="Hallazgo: "+key;L=sop.filter(v=>(v.hallazgos||[]).includes(key))}
+  else if(kind==="tipo"){t=TIPOS[key]||key;L=V.filter(v=>v.tipo===key)}
+  else if(kind==="lugar"){t="Lugar: "+(key==="_"?"Sin lugar":(Lg(key)||{}).nombre);L=V.filter(v=>{const c=Cl(v.cliente_id);const r=c&&lugarRaiz(c.lugar_id);return key==="_"?!r:r&&r.id===key})}
+  else if(kind==="retorno"){t="Visitas que tuvieron retorno en 30 días";L=ret.list}
+  else if(kind==="noco"){t="La versión del cliente no coincide";L=sop.filter(v=>{const c=comparativa(v);return c&&!c.ok})}
+  else if(kind==="rojos"){const cs=S.clientes.filter(c=>semaforo(c.id).c==="r"&&(!P.raiz||lugarRaiz(c.lugar_id)?.id===P.raiz));
+    return `<section class="sec" style="border-color:var(--fuchsia)"><div class="sec-h"><h2>Clientes en rojo</h2><button class="ghost" data-act="drillX" aria-label="Cerrar detalle">${ICON.x}</button></div>${cs.length?`<div class="list">${cs.map(clienteItem).join("")}</div>`:`<p class="muted" style="margin:0">Ninguno.</p>`}</section>`}
+  L=[...L].sort((a,b)=>ts(b.fecha)-ts(a.fecha));
+  return `<section class="sec" style="border-color:var(--fuchsia)"><div class="sec-h"><h2>${esc(t)} · ${L.length}</h2><button class="ghost" data-act="drillX" aria-label="Cerrar detalle">${ICON.x}</button></div>${L.length?`<div class="list">${L.slice(0,60).map(v=>visitaItem(v)).join("")}</div>`:`<p class="muted" style="margin:0">Sin visitas.</p>`}</section>`}
+function csv(){
+  const H=["fecha","tipo","cliente","telefono","ip","lugar","direccion","nap","hilo","companero","lo_que_dice_el_cliente","lo_encontrado","coincide","causa","sin_senal","onu_antes","olt_antes","onu_despues","olt_despues","solucion","etiqueta","estado","otra_cuadrilla_antes","nota","lat","lng","maps"];
+  const q=x=>{const s=String(x??"");return /[",;\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s};
+  const rows=[...S.visitas].sort((a,b)=>ts(a.fecha)-ts(b.fecha)).map(v=>{const c=Cl(v.cliente_id)||{};const cm=comparativa(v);
+    return [new Date(ts(v.fecha)).toLocaleString("es-EC"),TIPOS[v.tipo]||v.tipo,c.nombre,c.telefono,c.ip,lugarTxt(c.lugar_id),c.direccion,v.nap,v.hilo,v.companero,(v.sintomas||[]).join(" | "),(v.hallazgos||[]).join(" | "),cm?(cm.ok?"sí":"no"):"",v.causa,v.sin_senal?"sí":"",v.onu_antes,v.olt_antes,v.onu_despues,v.olt_despues,(v.soluciones||[]).join(" | "),v.etiqueta_estado,v.estado,v.previa_otra?"sí":"",v.nota,c.lat,c.lng,mapsDir(c)].map(q).join(",")});
+  const blob=new Blob(["﻿"+[H.join(","),...rows].join("\r\n")],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="visitas-"+new Date().toISOString().slice(0,10)+".csv";document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500)}
+
+/* ============ MAPA ============ */
+let M={raiz:""};
+function vMapa(){
+  const cs=S.clientes.filter(c=>!M.raiz||lugarRaiz(c.lugar_id)?.id===M.raiz);const con=cs.filter(c=>c.lat!=null);
+  const alertas=napAlertas();
+  return `<div class="top"><div><span class="sub">${con.length} de ${cs.length} clientes con ubicación</span><h1>Mapa</h1></div><span data-syncbox>${syncHTML()}</span></div>
+  <div class="chips"><button class="chip" data-act="mraiz" data-val="" aria-pressed="${!M.raiz}">Todas</button>${hijos(null).map(l=>`<button class="chip" data-act="mraiz" data-val="${l.id}" aria-pressed="${M.raiz===l.id}">${esc(l.nombre)}</button>`).join("")}</div>
+  ${navigator.onLine&&window.L?`<div class="map big" id="bigMap" aria-label="Mapa de clientes"></div>`:`<div class="empty">El mapa necesita internet. La lista de abajo funciona sin señal.</div>`}
+  <div class="row sub"><span class="dot g" aria-hidden="true"></span>0–1 visitas en 30 días <span class="dot a" aria-hidden="true" style="margin-left:8px"></span>2 <span class="dot r" aria-hidden="true" style="margin-left:8px"></span>3 o más</div>
+  ${alertas.map(a=>`<div class="note a"><b>Alerta de NAP ${esc(a.nap)}:</b> ${a.n} clientes reportaron en los últimos 7 días. Puede ser la NAP, no las casas.</div>`).join("")}
+  <section class="sec"><h2>Clientes ${cs.length-con.length?`· ${cs.length-con.length} sin ubicación`:""}</h2>${cs.length?`<div class="list">${[...cs].sort((a,b)=>semaforo(b.id).n-semaforo(a.id).n).slice(0,80).map(clienteItem).join("")}</div>`:`<p class="muted" style="margin:0">Sin clientes.</p>`}</section>`}
+function napAlertas(){const by={};S.visitas.filter(v=>v.tipo!=="instalacion"&&Date.now()-ts(v.fecha)<=7*DAY).forEach(v=>{const n=(v.nap||Cl(v.cliente_id)?.nap||"").toUpperCase();if(!n)return;(by[n]=by[n]||new Set()).add(v.cliente_id)});return Object.entries(by).filter(([,s])=>s.size>=3).map(([nap,s])=>({nap,n:s.size}))}
+function initBigMap(){
+  const el=$("bigMap");if(!el||!window.L)return;
+  const cs=S.clientes.filter(c=>c.lat!=null&&(!M.raiz||lugarRaiz(c.lugar_id)?.id===M.raiz));
+  bigMap=L.map(el).setView([-4.6477,-79.1305],13);
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(bigMap);
+  const col={g:"#2ee88a",a:"#fbbf24",r:"#ff2e7a"};const pts=[];
+  cs.forEach(c=>{const s=semaforo(c.id);const m=L.marker([c.lat,c.lng],{icon:pinIcon(col[s.c],s.c==="r"?22:16),zIndexOffset:s.c==="r"?500:s.c==="a"?200:0}).addTo(bigMap);
+    m.bindPopup(`<b>${esc(c.nombre)}</b>${esc(lugarTxt(c.lugar_id))}<br>${visCli(c.id).length} visitas${c.nap?" · NAP "+esc(c.nap):""}<br><a href="#/cliente/${c.id}">Ver ficha</a> · <a href="${mapsDir(c)}" target="_blank" rel="noopener">Cómo llegar</a>`);pts.push([c.lat,c.lng])});
+  if(pts.length===1)bigMap.setView(pts[0],17);else if(pts.length)bigMap.fitBounds(pts,{padding:[30,30],maxZoom:17});
+  setTimeout(()=>bigMap&&bigMap.invalidateSize(),150)}
+
+/* ============ AJUSTES ============ */
+let devs=null,devErr="",devLoading=false;
+function vAjustes(){
+  if(!ADM())return `<div class="empty">Solo el administrador puede ver los ajustes.</div>`;
+  if(!DEMO&&devs===null&&navigator.onLine)loadDevs();
+  return `<div class="top"><h1>Ajustes</h1><span data-syncbox>${syncHTML()}</span></div>
+  <section class="sec"><h2>Este dispositivo</h2>${DEMO?`<p class="muted" style="margin:0">Modo demostración: falta conectar Supabase en <span class="mono">config.js</span>.</p>`:`<p style="margin:0"><b>${esc(S.disp?.nombre||"")}</b> · Administrador · código <span class="mono">${esc(S.disp?.codigo||"")}</span></p>`}</section>
+  ${DEMO?"":`<section class="sec"><div class="sec-h"><h2>Dispositivos con acceso</h2><button class="ghost" data-act="devsReload">Actualizar</button></div>
+   <p class="muted" style="margin:0">Para dar acceso al jefe: que abra el enlace en su celular, ponga un nombre y te diga su código. Aquí lo apruebas como <b>Solo ver</b>.</p>
+   ${devErr?`<div class="note r">${esc(devErr)}</div>`:""}
+   ${devs===null?`<p class="muted">${navigator.onLine?"Cargando…":"Necesitas internet para ver los dispositivos."}</p>`:devs.map(d=>{const yo=d.user_id===S.disp?.user_id;return `<div class="box"><div class="row"><span class="grow"><b>${esc(d.nombre)}</b> <span class="mono muted">${esc(d.codigo)}</span>${yo?' <span class="tag">Este</span>':""}<br><span class="sub">${fFecha(d.creado)}</span></span></div>
+    ${yo?"":`<div class="chips">${[["lector","Solo ver","ok"],["admin","Administrador",""],["pendiente","Pendiente","amber"],["bloqueado","Bloqueado","red"]].map(([k,l,c])=>`<button class="chip ${c}" data-act="devRol" data-id="${d.user_id}" data-val="${k}" aria-pressed="${d.rol===k}">${l}</button>`).join("")}<button class="chip red" data-act="devDel" data-id="${d.user_id}">Eliminar</button></div>`}</div>`}).join("")}</section>`}
+  <section class="sec"><h2>Lugares</h2><p class="muted" style="margin:0">Parroquia › Sector › Barrio. Las <b>palabras clave</b> sirven para reconocer el lugar al pegar la planificación (sepáralas con comas).</p>
+   <div>${lugarTree(null,0)}</div>
+   <div class="row"><input class="in grow" id="lugRaizNueva" placeholder="Nueva parroquia" aria-label="Nueva parroquia"><button class="ghost" data-act="lugRaizAdd">${ICON.plus}Agregar</button></div></section>
+  <section class="sec"><h2>Sincronización</h2>
+   <p class="muted" style="margin:0">${DEMO?"Sin nube en modo demostración.":`${S.outbox.length} cambios por subir${S.lastSync?` · última descarga ${fFecha(S.lastSync)} ${fHora(S.lastSync)}`:""}.`}</p>
+   ${S.err?`<div class="note r">Último error: ${esc(S.err)}</div>${S.outbox.length?`<button class="danger" data-act="descartar">Descartar el cambio que falla (${esc(S.outbox[0].k)} ${esc(S.outbox[0].t||"foto")})</button>`:""}`:""}
+   ${DEMO?"":`<button class="ghost" data-act="sync">Sincronizar ahora</button>`}</section>
+  <section class="sec"><h2>Instalar en el iPhone</h2><p class="muted" style="margin:0">En Safari: botón Compartir › <b>Agregar a pantalla de inicio</b>. Así funciona sin señal y el acceso de este dispositivo no se borra.</p>
+   <button class="ghost" data-act="update">Buscar actualización de la app</button></section>`}
+function lugarTree(p,d){return hijos(p).map(l=>{const n=S.clientes.filter(c=>lugarChain(c.lugar_id).some(x=>x.id===l.id)).length;
+  return `<div class="lugrow" style="padding-left:${d*16}px"><span style="min-width:0"><b>${d?"└ ":""}${esc(l.nombre)}</b><small>${n} clientes${(l.palabras||[]).length?" · "+esc(l.palabras.join(", ")):""}</small></span><button class="ghost" data-act="lugEdit" data-id="${l.id}" aria-label="Editar ${esc(l.nombre)}">${ICON.edit}</button></div>
+  ${lugEditId===l.id?`<div class="box" style="margin-left:${d*16}px"><label class="f">Nombre<input id="le-nombre" value="${esc(l.nombre)}"></label><label class="f">Palabras clave<input id="le-pal" value="${esc((l.palabras||[]).join(", "))}" placeholder="ej. san fco, el vergel"></label>
+   ${d<2?`<label class="f">Agregar ${d===0?"sector":"barrio"} dentro<input id="le-hijo" placeholder="Nombre"></label>`:""}
+   <div class="row"><button class="primary grow" data-act="lugSave" data-id="${l.id}">Guardar</button><button class="danger" data-act="lugDel" data-id="${l.id}">Eliminar</button></div></div>`:""}
+  ${lugarTree(l.id,d+1)}`}).join("")}
+let lugEditId=null;
+async function loadDevs(){if(devLoading)return;devLoading=true;devErr="";try{const {data,error}=await sb.from("dispositivos").select("*").order("creado");if(error)throw error;devs=data}catch(e){devErr=msg(e);devs=devs||[]}devLoading=false;if(route().name==="ajustes"){render.keepScroll=true;render()}}
+
+/* ============ eventos ============ */
+document.addEventListener("click",async e=>{
+  const b=e.target.closest("[data-act],[data-chip]");if(!b)return;
+  if(b.dataset.chip){const g=b.dataset.chip,v=b.dataset.val;
+    if(Array.isArray(cur[g])){cur[g]=cur[g].includes(v)?cur[g].filter(x=>x!==v):[...cur[g],v]}else cur[g]=cur[g]===v?(g==="estado"?v:""):v;
+    if(g==="sintomas"||g==="hallazgos")re("s-diag",secDiag());else if(g==="etiqueta_estado")re("s-etq",secEtiqueta());else if(g==="soluciones")re("s-sol",secSol());else if(g==="estado")re("s-estado",secEstado());return}
+  const a=b.dataset.act;
+  switch(a){
+   case "tipo":cur.tipo=b.dataset.val;render.keepScroll=true;render();break;
+   case "pegar":try{const t=await navigator.clipboard.readText();if(t){cur.pegado=t;leerPlan()}else toast("El portapapeles está vacío")}catch(err){toast("Pega el texto con mantener presionado › Pegar")}break;
+   case "leer":cur.pegado=$("pegado").value;leerPlan();break;
+   case "mismo":usarCliente(b.dataset.id);break;
+   case "nuevoCli":cur.decidido=true;cur.clienteId=null;re("s-match","");break;
+   case "telOk":cur.tels.forEach((t,i)=>t.ok=i===+b.dataset.i);re("s-match",secMatch());b.closest("section").outerHTML=secCliente();break;
+   case "telDel":cur.tels.splice(+b.dataset.i,1);if(cur.tels.length&&!cur.tels.some(t=>t.ok))cur.tels[0].ok=true;b.closest("section").outerHTML=secCliente();break;
+   case "telAdd":{const n=$("telNuevo").value.trim();if(!n)break;cur.tels.push({n,ok:!cur.tels.length});b.closest("section").outerHTML=secCliente();re("s-match",secMatch());break}
+   case "lugAdd":{const n=$("lugNuevo").value.trim();if(!n)break;const ch=lugarChain(cur.lugar_id);const parent=!ch.length?null:ch.length<3?ch[ch.length-1]:ch[ch.length-2];
+     const l={id:uid(),nombre:n,padre:parent?parent.id:null,palabras:[],creado:new Date().toISOString()};commit([{k:"up",t:"lugares",row:l}]);cur.lugar_id=l.id;re("s-lugar",secLugar());toast("Lugar agregado");break}
+   case "lugPalabra":{const w=$("lugPalabra").value.trim();const l=Lg(cur.lugar_id);if(!w||!l)break;commit([{k:"up",t:"lugares",row:{...l,palabras:[...new Set([...(l.palabras||[]),w])]}}]);cur.lugarAuto={id:l.id,w};re("s-lugar",secLugar());toast("La próxima vez reconoceré «"+w+"»");break}
+   case "gps":tomarGPS();break;
+   case "ubicBorrar":cur.lat=cur.lng=cur.precision_m=null;cur.coordsTxt="";re("s-ubic",secUbic());break;
+   case "previa":cur.previa_otra=!cur.previa_otra;b.setAttribute("aria-pressed",cur.previa_otra);break;
+   case "otro":{const inp=$(b.dataset.src);const v=inp.value.trim();if(!v)break;const g=b.dataset.grp;if(!cur[g].includes(v))cur[g].push(v);g==="hallazgos"?re("s-diag",secDiag()):re("s-sol",secSol());break}
+   case "causa":cur.causa=b.dataset.val;cur.causaManual=true;re("s-diag",secDiag());break;
+   case "sinsenal":cur.sin_senal=!cur.sin_senal;re("s-pot",secPot());break;
+   case "etqCopiar":{const t=etiquetaTxt();if(!t){toast("Escribe nombre, NAP e hilo");break}try{await navigator.clipboard.writeText(t);toast("Texto copiado")}catch(err){toast("No se pudo copiar")}break}
+   case "fotoDel":quitarFoto(b.dataset.path);break;
+   case "guardar":guardar();break;
+   case "visBorrar":if(confirm("¿Eliminar esta visita? No se puede deshacer.")){const v=S.visitas.find(x=>x.id===cur.visitaId);const cid=v.cliente_id;commit([{k:"del",t:"visitas",id:v.id},...(v.fotos||[]).map(f=>({k:"fotodel",path:f.path}))]);cur=null;location.hash="#/cliente/"+cid;toast("Visita eliminada")}break;
+   case "cliGuardar":{const c=Cl(b.dataset.id);const g=id=>$(id).value.trim();const nh=g("ce-naphilo").match(/^([^\s]+?)(?:\s*h-?\s*(\d+))?$/i);const co=coordsDec(g("ce-coords"));
+     if(!g("ce-nombre")){toast("Falta el nombre");break}
+     commit([{k:"up",t:"clientes",row:{...pick("clientes",c),nombre:g("ce-nombre"),telefono:g("ce-telefono")||null,telefono2:g("ce-telefono2")||null,ip:g("ce-ip")||null,direccion:g("ce-direccion")||null,lugar_id:g("ce-lugar")||null,
+       nap:nh?nh[1].toUpperCase():null,hilo:nh&&nh[2]?nh[2]:null,lat:co?co[0]:g("ce-coords")?c.lat:null,lng:co?co[1]:g("ce-coords")?c.lng:null,precision_m:co&&co[0]!==c.lat?null:c.precision_m,notas:g("ce-notas")||null,editado:new Date().toISOString()}}]);
+     editCli=false;render.keepScroll=true;render();toast("Cliente actualizado");break}
+   case "cliBorrar":{const c=Cl(b.dataset.id);if(!confirm("¿Eliminar a "+c.nombre+" y todas sus visitas? No se puede deshacer."))break;
+     const fotos=visCli(c.id).flatMap(v=>(v.fotos||[]).map(f=>({k:"fotodel",path:f.path})));commit([{k:"del",t:"clientes",id:c.id},...fotos]);location.hash="#/";toast("Cliente eliminado");break}
+   case "drill":P.drill={kind:b.dataset.kind,key:b.dataset.key};render.keepScroll=true;render();$("drill")?.scrollIntoView({behavior:"smooth",block:"start"});break;
+   case "drillX":P.drill=null;render.keepScroll=true;render();break;
+   case "csv":csv();break;
+   case "mraiz":M.raiz=b.dataset.val;render.keepScroll=true;render();break;
+   case "sync":S.err="";renderSync();await flush();await refresh();break;
+   case "descartar":if(confirm("¿Descartar este cambio? No se subirá a la nube.")){S.outbox.shift();LS.set("vz-outbox",S.outbox);S.err="";flush();render.keepScroll=true;render()}break;
+   case "devsReload":devs=null;render.keepScroll=true;render();break;
+   case "devRol":{const {error}=await sb.from("dispositivos").update({rol:b.dataset.val}).eq("user_id",b.dataset.id);if(error){toast("Error: "+msg(error));break}toast("Acceso actualizado");loadDevs();break}
+   case "devDel":if(confirm("¿Quitar este dispositivo? Tendrá que pedir acceso de nuevo.")){const {error}=await sb.from("dispositivos").delete().eq("user_id",b.dataset.id);if(error)toast("Error: "+msg(error));loadDevs()}break;
+   case "lugEdit":lugEditId=lugEditId===b.dataset.id?null:b.dataset.id;render.keepScroll=true;render();break;
+   case "lugSave":{const l=Lg(b.dataset.id);const n=$("le-nombre").value.trim();if(!n)break;const pal=$("le-pal").value.split(",").map(s=>s.trim()).filter(Boolean);const ops=[{k:"up",t:"lugares",row:{...l,nombre:n,palabras:pal}}];
+     const h=$("le-hijo")?.value.trim();if(h)ops.push({k:"up",t:"lugares",row:{id:uid(),nombre:h,padre:l.id,palabras:[],creado:new Date().toISOString()}});commit(ops);if(!h)lugEditId=null;render.keepScroll=true;render();toast("Guardado");break}
+   case "lugDel":{const l=Lg(b.dataset.id);if(confirm("¿Eliminar «"+l.nombre+"» y sus sectores/barrios? Los clientes quedan sin lugar.")){commit([{k:"del",t:"lugares",id:l.id}]);lugEditId=null;render.keepScroll=true;render()}break}
+   case "lugRaizAdd":{const n=$("lugRaizNueva").value.trim();if(!n)break;commit([{k:"up",t:"lugares",row:{id:uid(),nombre:n,padre:null,palabras:[],creado:new Date().toISOString()}}]);render.keepScroll=true;render();break}
+   case "update":if(navigator.serviceWorker){const r=await navigator.serviceWorker.getRegistration();if(r){await r.update();if(r.waiting){r.waiting.postMessage("skip");toast("Actualizando…")}else toast("Ya tienes la última versión")}}break;
+   case "pedir":pedirAcceso();break;
+   case "check":checkDevice();break;
+   case "reclamar":{const {data,error}=await sb.rpc("reclamar_admin");if(error||!data)toast(error?msg(error):"Ya existe un administrador");checkDevice();break}
+  }});
+document.addEventListener("input",e=>{
+  const t=e.target;
+  if(t.id==="q"){q=t.value;$("qres").innerHTML=q.trim()?resHTML(buscar(q)):"";return}
+  if(t.id==="cq"){const v=t.value.trim();$("cqres").innerHTML=v?`<div class="list" style="margin-top:8px">${buscar(v).slice(0,6).map(c=>`<button type="button" class="item" data-act="mismo" data-id="${c.id}"><span class="dot ${semaforo(c.id).c}" aria-hidden="true"></span><span style="min-width:0"><b>${esc(c.nombre)}</b><small>${esc(lugarTxt(c.lugar_id)||c.direccion||"")}</small></span><span class="tag">Usar</span></button>`).join("")||'<p class="muted">Sin resultados.</p>'}</div>`:"";return}
+  if(t.id==="pegado"){cur.pegado=t.value;return}
+  if(t.id==="coordsTxt"){cur.coordsTxt=t.value;const co=coordsDec(t.value);if(co){cur.lat=co[0];cur.lng=co[1];cur.precision_m=null;cur.mapaLink="";const keep=t.value;re("s-ubic",secUbic());const n=$("coordsTxt");if(n){n.value=keep}toast("Coordenadas reconocidas")}return}
+  const k=t.dataset.k;if(!k||!cur)return;
+  if(k==="fechaTxt"){const d=new Date(t.value);if(!isNaN(d))cur.fecha=d.getTime();return}
+  if(k==="onu_despues"||k==="onu_antes"){const m=t.value.match(/(-?\d+(?:[.,]\d+)?)\s*(?:dbm)?\s*\/\s*(-?\d+(?:[.,]\d+)?)/i);
+    if(m){cur[k]=m[1].replace(",",".");cur[k.replace("onu","olt")]=m[2].replace(",",".");re("s-pot",secPot());return}}
+  cur[k]=t.value;
+  if(k.startsWith("onu")||k.startsWith("olt")){$("potRes").innerHTML=potRes();return}
+  if(k==="nombre"||k==="nap"||k==="hilo"){const el=$("etqTxt");if(el)el.innerHTML=esc(etiquetaTxt())||'<span class="muted">Escribe nombre, NAP e hilo</span>'}
+  if(k==="nombre"||k==="ip"){clearTimeout(re.mt);re.mt=setTimeout(()=>re("s-match",secMatch()),400)}
+  if(k==="direccion"&&!cur.lugar_id){clearTimeout(re.lt);re.lt=setTimeout(()=>{const d=detectarLugar(cur.direccion);if(d){cur.lugar_id=d.id;cur.lugarAuto=d;re("s-lugar",secLugar())}},500)}});
+document.addEventListener("change",e=>{
+  const t=e.target;
+  if(t.dataset.fotoTipo){agregarFoto(t);return}
+  if(t.dataset.lvl!=null){const i=+t.dataset.lvl;const ch=lugarChain(cur.lugar_id);cur.lugar_id=t.value||(i>0?ch[i-1].id:null);cur.lugarAuto=null;re("s-lugar",secLugar());return}
+  if(t.id==="pPer"){P.per=t.value;render.keepScroll=true;render();return}
+  if(t.id==="pRaiz"){P.raiz=t.value;render.keepScroll=true;render();return}});
+document.addEventListener("toggle",e=>{if(e.target.id==="cliEdit")editCli=e.target.open},true);
+window.addEventListener("online",()=>{renderSync();flush().then(refresh);if(!S.started)checkDevice()});
+window.addEventListener("offline",renderSync);
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&!DEMO&&Date.now()-(checkDevice.last||0)>60000)checkDevice()});
+
+/* ============ acceso por dispositivo ============ */
+function gate(html){S.started=false;$("dock").hidden=true;$("app").innerHTML=`<div class="gate"><div><span class="sub">Meganet</span><h1>Registro de visitas</h1></div>${html}</div>`}
+const codigo=()=>Array.from({length:4},()=>"ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[Math.floor(Math.random()*32)]).join("");
+async function pedirAcceso(){
+  const nombre=($("devNombre")?.value||"").trim();if(!nombre){toast("Escribe un nombre para este dispositivo");return}
+  const {data:{session}}=await sb.auth.getSession();
+  const {error}=await sb.from("dispositivos").insert({user_id:session.user.id,nombre,codigo:codigo(),rol:"pendiente"});
+  if(error){toast("Error: "+msg(error));return}checkDevice()}
+function renderGate(kind,err){
+  if(kind==="nuevo")gate(`<section class="sec"><h2>Este dispositivo no tiene acceso</h2><p class="muted" style="margin:0">No se usan usuarios ni claves: cada celular se autoriza una sola vez. Ponle un nombre y pide acceso.</p>
+    <label class="f">Nombre del dispositivo<input id="devNombre" placeholder="Ej. iPhone de Kirito / Celular del jefe" autocomplete="off"></label><button class="primary" data-act="pedir">Pedir acceso</button></section>`);
+  else if(kind==="pendiente")gate(`<section class="sec"><h2>Esperando aprobación</h2><p class="muted" style="margin:0">Dale este código al administrador para que apruebe <b>${esc(S.disp?.nombre||"este dispositivo")}</b>:</p><div class="code">${esc(S.disp?.codigo||"")}</div><button class="ghost" data-act="check">Ya me aprobaron, comprobar</button></section>
+    ${S.hayAdmin?"":`<section class="sec" style="border-color:var(--fuchsia)"><h2>¿Primer uso?</h2><p class="muted" style="margin:0">Aún no hay administrador. Si este es <b>tu</b> celular, conviértelo en el administrador con control total.</p><button class="primary" data-act="reclamar">Este dispositivo es el administrador</button></section>`}`);
+  else if(kind==="bloqueado")gate(`<section class="sec"><h2>Acceso bloqueado</h2><p class="muted" style="margin:0">Este dispositivo no tiene permiso para ver el registro.</p></section>`);
+  else if(kind==="offline")gate(`<section class="sec"><h2>Sin internet</h2><p class="muted" style="margin:0">Conéctate a internet la primera vez para autorizar este dispositivo. Después funciona sin señal.</p><button class="ghost" data-act="check">Reintentar</button></section>`);
+  else gate(`<section class="sec"><h2>No se pudo conectar</h2><div class="note r">${esc(err)}</div>${/anonymous/i.test(err||"")?`<p class="muted" style="margin:0">Activa <b>Allow anonymous sign-ins</b> en Supabase › Authentication › Sign In / Providers.</p>`:""}<button class="ghost" data-act="check">Reintentar</button></section>`)}
+function start(){S.started=true;render();refresh();flush()}
+async function checkDevice(){
+  checkDevice.last=Date.now();
+  if(!navigator.onLine){if(!S.started)renderGate("offline");return}
+  try{let {data:{session}}=await sb.auth.getSession();
+    if(!session){const r=await sb.auth.signInAnonymously();if(r.error)throw r.error;session=r.data.session}
+    const {data,error}=await sb.from("dispositivos").select("*").eq("user_id",session.user.id).maybeSingle();if(error)throw error;
+    S.disp=data;LS.set("vz-disp",data);const prev=S.rol;S.rol=data?data.rol:null;LS.set("vz-rol",S.rol);
+    if(S.rol==="admin"||S.rol==="lector"){if(!S.started||prev!==S.rol)start();else{flush();refresh()}}
+    else{wipeLocal();S.hayAdmin=!!(await sb.rpc("hay_admin")).data;renderGate(data?data.rol:"nuevo")}}
+  catch(e){if(S.started)return;renderGate("error",msg(e))}}
+async function boot(){
+  loadCache();
+  if(DEMO){if(!S.lugares.length){S.lugares=["Palanda","Valladolid","La Canela","San Francisco","Santa Ana","El Porvenir","Tapala"].map(n=>({id:uid(),nombre:n,padre:null,palabras:[],creado:new Date().toISOString()}));saveCache()}start();return}
+  if(!window.supabase){$("app").innerHTML=`<div class="empty">No se pudo cargar la librería de Supabase.</div>`;return}
+  sb=window.supabase.createClient(CFG.url,CFG.anonKey,{auth:{persistSession:true,autoRefreshToken:true,storageKey:"vz-auth"}});
+  S.rol=LS.get("vz-rol");S.disp=LS.get("vz-disp");
+  if(S.rol==="admin"||S.rol==="lector"){start();checkDevice()}else checkDevice()}
+if("serviceWorker" in navigator&&location.protocol!=="file:"){navigator.serviceWorker.register("sw.js").then(r=>{r.addEventListener("updatefound",()=>{const w=r.installing;w&&w.addEventListener("statechange",()=>{if(w.state==="installed"&&navigator.serviceWorker.controller)toast("Nueva versión lista: Ajustes › Buscar actualización")})})}).catch(()=>{});
+  const hadCtl=!!navigator.serviceWorker.controller;let reloaded=false;navigator.serviceWorker.addEventListener("controllerchange",()=>{if(hadCtl&&!reloaded){reloaded=true;location.reload()}})}
+boot();
+</script>
+</body>
+</html>
